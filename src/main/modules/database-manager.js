@@ -1,4 +1,4 @@
-// /modules/database-manager.js
+// /modules/database-manager.js (VERSÃO CORRIGIDA)
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 const path = require("path");
@@ -39,7 +39,6 @@ async function initializeDatabase(app) {
                 PRIMARY KEY (game_id, tag_id)
             );
 
-            -- INÍCIO DA ALTERAÇÃO --
             CREATE TABLE IF NOT EXISTS game_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 game_id INTEGER NOT NULL,
@@ -48,7 +47,6 @@ async function initializeDatabase(app) {
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
             );
-            -- FIM DA ALTERAÇÃO --
 
             CREATE TABLE IF NOT EXISTS notes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -247,14 +245,16 @@ async function findGamesByTags(tagNames = []) {
     return await db.all(query, normalizedTags);
 }
 
-// --- INÍCIO DA ALTERAÇÃO --
 /**
- * Adiciona um novo registro de log de jogo.
- * @param {number} gameId - O ID do jogo.
- * @param {string} logText - O texto da anotação.
- * @param {number|null} moodRating - A nota de humor (1-5), opcional.
- * @returns {Promise<number>} O ID do log inserido.
+ * Busca um único jogo pelo seu título exato (case-insensitive).
+ * @param {string} title - O título do jogo a ser encontrado.
+ * @returns {Promise<object|undefined>} O objeto do jogo se encontrado, senão undefined.
  */
+async function findGameByTitle(title) {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    return await db.get("SELECT * FROM games WHERE LOWER(title) = LOWER(?)", [title.trim()]);
+}
+
 async function addGameLog(gameId, logText, moodRating = null) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const result = await db.run(
@@ -263,7 +263,6 @@ async function addGameLog(gameId, logText, moodRating = null) {
     );
     return result.lastID;
 }
-// --- FIM DA ALTERAÇÃO --
 
 async function addNote(content) {
   if (!db) throw new Error("Banco de dados não inicializado.");
@@ -509,7 +508,8 @@ module.exports = {
       listGames,
       findGamesByTag,
       findGamesByTags,
-      addGameLog, // <-- NOVA EXPORTAÇÃO
+      findGameByTitle, // <-- CORREÇÃO AQUI
+      addGameLog,
   },
   notes: { add: addNote, list: listNotes, clear: clearNotes, delete: deleteNoteById },
   scribe: { 
