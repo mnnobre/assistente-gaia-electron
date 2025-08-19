@@ -1,4 +1,4 @@
-// /plugins/gaia/index.js (VERSÃO REATORADA PARA FASE 4)
+// /plugins/gaia/index.js (VERSÃO FINAL DA FASE 4)
 
 // Importa todos os "sentidos" da G.A.I.A.
 const aiManager = require('../../src/main/modules/ai-manager.js');
@@ -6,10 +6,9 @@ const vectorDBManager = require('../../src/main/modules/vector-db-manager.js');
 const dbManager = require('../../src/main/modules/database-manager.js');
 
 // --- ESTADO INTERNO DO PLUGIN ---
-// O estado agora é mais robusto para lidar com diferentes fluxos de conversa.
 let conversationState = {
-    expecting: null, // O que a G.A.I.A. está esperando? Ex: 'mood_for_suggestion', 'game_for_log'
-    data: {}         // Dados temporários para a conversa. Ex: { logText: '...', mood: 5 }
+    expecting: null,
+    data: {}
 };
 
 // --- FUNÇÕES UTILITÁRIAS ---
@@ -19,10 +18,6 @@ function clearConversation() {
     conversationState.data = {};
 }
 
-/**
- * Analisa os argumentos do usuário para extrair parâmetros como --jogo e --humor.
- * Ex: 'log venci o chefe --humor 5 --jogo "Elden Ring"'
- */
 function parseArgs(args) {
     const result = { main: [], params: {} };
     let currentParam = null;
@@ -36,7 +31,6 @@ function parseArgs(args) {
             result.main.push(arg);
         }
     }
-    // Remove aspas dos parâmetros, se houver
     for (const key in result.params) {
         result.params[key] = result.params[key].replace(/"/g, '').trim();
     }
@@ -45,7 +39,7 @@ function parseArgs(args) {
 }
 
 /**
- * Função centralizada para salvar o log no banco de dados.
+ * Função centralizada para salvar o log em ambos os bancos de dados.
  */
 async function saveGameLog(gameName, logText, moodRating) {
     const game = await dbManager.hobbie.findGameByTitle(gameName);
@@ -54,9 +48,15 @@ async function saveGameLog(gameName, logText, moodRating) {
         return { success: false, message: `Humm, não encontrei "${gameName}" na sua estante. Que tal adicioná-lo com o comando \`/hobbie add "${gameName}" --platform ...\`? Assim podemos guardar essa memória.` };
     }
 
+    // 1. Salva no banco de dados factual (SQLite)
     await dbManager.hobbie.addGameLog(game.id, logText, moodRating);
     
-    // Futuramente (Ação 3), adicionaremos a lógica do ChromaDB aqui.
+    // --- INÍCIO DA ALTERAÇÃO (AÇÃO 3) ---
+    // 2. Salva no banco de dados semântico (ChromaDB) para futuras associações.
+    //    Criamos um texto mais rico em contexto para ser vetorizado.
+    const memoryContent = `Anotação sobre o jogo ${game.title}: "${logText}"`;
+    await vectorDBManager.addMemory('gaia', `log-${Date.now()}`, memoryContent);
+    // --- FIM DA ALTERAÇÃO (AÇÃO 3) ---
 
     return { success: true, message: `Anotado! Registrei essa memória sobre **${game.title}**. Momento épico!` };
 }
@@ -80,13 +80,10 @@ module.exports = {
         const userInput = args.join(' ');
 
         // --- ROTEADOR DE CONVERSA CONTEXTUAL ---
-        // Primeiro, verificamos se a G.A.I.A. já estava esperando por uma resposta.
-
         if (conversationState.expecting === 'mood_for_suggestion') {
             const moodDescription = userInput;
             clearConversation();
             
-            // Lógica de sugestão continua a mesma...
             const tags = (await aiManager.generateGaiaResponse({ userInput: `Analise: "${moodDescription}". Responda SÓ com tags de jogo separadas por vírgula. Ex: relaxante, casual, curto.` })).split(',').map(t => t.trim().toLowerCase());
             
             if (tags.length === 0) return { success: true, message: "Não consegui entender bem o sentimento para sugerir algo. Podemos tentar de novo?" };
@@ -110,8 +107,6 @@ module.exports = {
         }
 
         // --- ROTEADOR DE COMANDOS DIRETOS ---
-        // Se não havia um contexto, processamos o comando novo.
-
         switch (subcommand) {
             case 'sugestao':
                 conversationState.expecting = 'mood_for_suggestion';
@@ -126,15 +121,13 @@ module.exports = {
                 if (!logText) {
                     return { success: true, message: "O que você gostaria de registrar no seu diário de jogos?" };
                 }
-                if (mood && (mood < 1 || mood > 5)) {
+                if (mood && (isNaN(mood) || mood < 1 || mood > 5)) {
                     return { success: false, message: "O humor precisa ser um número entre 1 e 5." };
                 }
 
                 if (gameName) {
-                    // Se o jogo foi informado, salva diretamente.
                     return await saveGameLog(gameName, logText, mood);
                 } else {
-                    // Se não, pergunta qual é o jogo e guarda o log para depois.
                     conversationState.expecting = 'game_for_log';
                     conversationState.data = { logText, mood };
                     return { success: true, message: `Legal! Sobre qual jogo é essa anotação?` };
@@ -151,14 +144,12 @@ module.exports = {
                 return { success: true, message: "Memória reiniciada. Todas as minhas lembranças foram limpas. Estou pronta para começar novas aventuras com você!" };
 
             default:
-                // Se nenhum subcomando foi reconhecido, trata como um chat geral.
                 if (!userInput) {
                     return { success: true, message: "Olá! Sou a G.A.I.A., sua companheira de aventuras. Sobre qual jogo ou momento legal vamos conversar hoje?" };
                 }
 
                 const memories = await vectorDBManager.searchRelevantMemories('gaia', userInput, 3);
                 const gaiaResponse = await aiManager.generateGaiaResponse({ userInput, memoryContext: memories });
-                // No chat geral, não salvamos no log estruturado, apenas na memória vetorial.
                 await vectorDBManager.addMemory('gaia', `chat-${Date.now()}`, `A conversa foi: ${userInput}. A resposta foi: ${gaiaResponse}`);
                 
                 return { success: true, message: gaiaResponse };
