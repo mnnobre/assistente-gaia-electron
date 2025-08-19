@@ -1,0 +1,118 @@
+/* /styles/components/context-modal.css */
+
+#context-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1001; /* Acima do Hub de IA */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#context-modal-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#context-modal {
+    background-color: #282c34;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--secondary-bg);
+}
+
+.context-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--secondary-bg);
+    flex-shrink: 0;
+}
+
+.context-modal-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    border: none;
+}
+
+#context-modal-close-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+#context-modal-close-button:hover {
+    opacity: 1;
+}
+
+.context-modal-body {
+    padding: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#context-image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.context-modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--secondary-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.context-modal-footer button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.context-recapture-group {
+    display: flex;
+    gap: 10px;
+}
+
+.context-modal-footer .context-button-danger {
+    background-color: #dc3545;
+    color: white;
+}
+.context-modal-footer .context-button-danger:hover {
+    background-color: #c82333;
+}
+
+.context-modal-footer .context-button-primary {
+    background-color: var(--user-bubble-bg);
+    color: white;
+}
+.context-modal-footer .context-button-primary:hover {
+    background-color: #0073e6;
+}

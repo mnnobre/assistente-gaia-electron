@@ -1,0 +1,208 @@
+<!-- scribe.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Transcrição da Reunião</title>
+    <!-- CSS compartilhado com a janela ao vivo -->
+    <link rel="stylesheet" href="./src/renderer/styles/components/scribe-live.css">
+    <style>
+      /* Estilos específicos desta janela */
+      body { font-family: sans-serif; background-color: #282c34; color: #e6e6e6; margin: 0; }
+      #main-wrapper { display: flex; flex-direction: column; height: 100vh; }
+      #header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-bottom: 1px solid #444; flex-shrink: 0; }
+      #meeting-title { margin: 0; font-size: 1.5em; }
+      #content-wrapper { flex-grow: 1; overflow-y: auto; padding: 20px; }
+      #full-tracks-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #444; }
+      .full-track-player { display: flex; align-items: center; gap: 15px; }
+      .full-track-player label { font-weight: bold; min-width: 50px; }
+      .full-track-player audio { width: 100%; }
+      #transcript-container { display: flex; flex-direction: column; gap: 10px; }
+      .transcript-entry { position: relative; padding-left: 15px; display: flex; flex-direction: column; max-width: 80%; word-wrap: break-word; }
+      .entry-content { padding: 10px 15px; border-radius: 18px; }
+      .speaker-me { align-self: flex-end; }
+      .speaker-me .entry-content { background-color: #0084ff; color: white; border-radius: 18px 18px 0 18px; }
+      .speaker-other { align-self: flex-start; }
+      .speaker-other .entry-content { background-color: #3c4049; border-radius: 18px 18px 18px 0; }
+      .speaker-label { font-weight: bold; margin-bottom: 4px; display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="main-wrapper">
+        <div id="header">
+            <h1 id="meeting-title">Carregando...</h1>
+            <div id="header-actions">
+                <button id="analyze-button" title="Analisar com IA">✨</button>
+            </div>
+        </div>
+
+        <div id="content-wrapper">
+            <div id="full-tracks-container"></div>
+            <div id="transcript-container"></div>
+        </div>
+
+        <div id="analysis-panel" class="hidden">
+            <div id="quick-prompts">
+                <button data-prompt="Resuma os pontos principais.">Resumir</button>
+                <button data-prompt="Liste as tarefas ou itens de ação mencionados.">Listar Tarefas</button>
+                <button data-prompt="Identifique as principais dúvidas ou questões levantadas.">Identificar Dúvidas</button>
+            </div>
+            <div id="analysis-input-container">
+                <textarea id="analysis-input" placeholder="Pergunte algo sobre os trechos selecionados..." rows="1"></textarea>
+                <button id="analysis-send-button">Perguntar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const mainWrapper = document.getElementById('main-wrapper');
+        const meetingTitleEl = document.getElementById("meeting-title");
+        const tracksContainer = document.getElementById("full-tracks-container");
+        const transcriptContainer = document.getElementById("transcript-container");
+        const analyzeButton = document.getElementById('analyze-button');
+        const analysisPanel = document.getElementById('analysis-panel');
+        const quickPromptsContainer = document.getElementById('quick-prompts');
+        const analysisInput = document.getElementById('analysis-input');
+        const analysisSendButton = document.getElementById('analysis-send-button');
+
+        let lastCheckedCheckbox = null;
+        let lastSelectedBubble = null;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const meetingId = urlParams.get("meetingId");
+
+        if (!meetingId) {
+          meetingTitleEl.textContent = "Erro: ID da reunião não fornecido.";
+          return;
+        }
+
+        const data = await window.api.getScribeData({ meetingId: meetingId });
+        
+        if (data && data.meeting) {
+            meetingTitleEl.textContent = data.meeting.title;
+
+            // Renderiza Players
+            createAudioPlayer('Você:', data.meeting.full_audio_me);
+            createAudioPlayer('Outro:', data.meeting.full_audio_other);
+
+            // Renderiza Transcrições
+            data.transcripts.forEach(entry => {
+                const entryWrapper = document.createElement("div");
+                entryWrapper.className = `transcript-entry speaker-${entry.speaker}`;
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'entry-content';
+                contentDiv.innerHTML = `<span class="speaker-label">${entry.speaker === 'me' ? 'Você' : 'Outro'}:</span>${entry.text}`;
+                entryWrapper.appendChild(contentDiv);
+                transcriptContainer.appendChild(entryWrapper);
+            });
+
+            // Renderiza Análises Salvas
+            if (data.analyses && data.analyses.length > 0) {
+                data.analyses.forEach(renderAnalysisBlock);
+            }
+
+        } else {
+          meetingTitleEl.textContent = "Erro ao carregar a transcrição.";
+        }
+
+        // --- LÓGICA COMPARTILHADA ---
+        function createAudioPlayer(label, audioData) {
+            if (audioData && typeof audioData === 'object' && audioData.length > 0) {
+                const trackDiv = document.createElement('div');
+                trackDiv.className = 'full-track-player';
+                const labelEl = document.createElement('label');
+                labelEl.textContent = label;
+                const audioBlob = new Blob([audioData], { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audioPlayer = document.createElement('audio');
+                audioPlayer.controls = true;
+                audioPlayer.src = audioUrl;
+                trackDiv.appendChild(labelEl);
+                trackDiv.appendChild(audioPlayer);
+                tracksContainer.appendChild(trackDiv);
+            }
+        }
+
+        function toggleAnalysisMode() {
+            const isActive = mainWrapper.classList.toggle('analysis-mode');
+            analyzeButton.classList.toggle('active', isActive);
+            analysisPanel.classList.toggle('hidden', !isActive);
+            if (isActive) {
+                addCheckboxesToBubbles();
+            } else {
+                removeCheckboxesFromBubbles();
+                lastCheckedCheckbox = null;
+            }
+        }
+
+        function addCheckboxesToBubbles() {
+            transcriptContainer.querySelectorAll('.transcript-entry').forEach(bubble => {
+                if (bubble.querySelector('.analysis-checkbox')) return;
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'analysis-checkbox';
+                bubble.prepend(checkbox);
+            });
+        }
+
+        function removeCheckboxesFromBubbles() {
+            transcriptContainer.querySelectorAll('.analysis-checkbox').forEach(checkbox => checkbox.remove());
+        }
+
+        async function handleAnalysisRequest(question) {
+            const selectedCheckboxes = transcriptContainer.querySelectorAll('.analysis-checkbox:checked');
+            if (selectedCheckboxes.length === 0) return;
+            let context = "";
+            selectedCheckboxes.forEach((checkbox, index) => {
+                const bubble = checkbox.parentElement;
+                context += bubble.textContent.trim() + '\n';
+                if (index === selectedCheckboxes.length - 1) {
+                    lastSelectedBubble = bubble;
+                }
+            });
+            toggleAnalysisMode();
+            const result = await window.api.analyzeScribeText({ context, question, meetingId });
+            // Como a resposta agora é salva no DB, poderíamos recarregar ou simplesmente renderizar
+            if (result.success) {
+                // Para uma UX mais rápida, renderizamos a resposta que já temos
+                renderAnalysisBlock({ question, context, answer: result.answer }); 
+            }
+        }
+
+        function renderAnalysisBlock(data) {
+            if (!transcriptContainer) return; // Garante que o contêiner existe
+            const analysisBlock = document.createElement('div');
+            analysisBlock.className = 'analysis-block';
+            const requestHTML = `<details class="analysis-details"><summary>Pergunta Feita à IA</summary><div class="analysis-content"><strong>Pergunta:</strong><p>${data.question}</p><strong>Contexto Enviado:</strong><pre>${data.context}</pre></div></details>`;
+            const responseHTML = `<details class="analysis-details" open><summary>Resposta da IA</summary><div class="analysis-content">${data.answer}</div></details>`;
+            analysisBlock.innerHTML = requestHTML + responseHTML;
+            
+            // Tenta inserir após a última bolha selecionada, ou no final do container
+            if (lastSelectedBubble && transcriptContainer.contains(lastSelectedBubble)) {
+                 lastSelectedBubble.parentNode.insertBefore(analysisBlock, lastSelectedBubble.nextSibling);
+            } else {
+                 transcriptContainer.appendChild(analysisBlock);
+            }
+        }
+        
+        analyzeButton.addEventListener('click', toggleAnalysisMode);
+        analysisSendButton.addEventListener('click', () => { if (analysisInput.value.trim()) handleAnalysisRequest(analysisInput.value.trim()); });
+        quickPromptsContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') handleAnalysisRequest(e.target.dataset.prompt); });
+        
+        transcriptContainer.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.classList.contains('analysis-checkbox') && e.shiftKey && lastCheckedCheckbox) {
+                const allCheckboxes = Array.from(transcriptContainer.querySelectorAll('.analysis-checkbox'));
+                const start = allCheckboxes.indexOf(lastCheckedCheckbox);
+                const end = allCheckboxes.indexOf(target);
+                allCheckboxes.slice(Math.min(start, end), Math.max(start, end) + 1).forEach(cb => cb.checked = target.checked);
+            }
+            if (target.classList.contains('analysis-checkbox')) {
+                lastCheckedCheckbox = target;
+            }
+        });
+      });
+    </script>
+  </body>
+</html>

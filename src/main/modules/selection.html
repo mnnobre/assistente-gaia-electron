@@ -1,0 +1,30 @@
+<!-- /modules/selection.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Selection</title>
+    <style>
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: rgba(0, 0, 0, 0.3); /* Fundo semi-transparente */
+            cursor: crosshair;
+            user-select: none;
+        }
+        #selection-box {
+            position: absolute;
+            background-color: rgba(0, 132, 255, 0.2); /* Azul semi-transparente */
+            border: 1px solid #0084ff; /* Borda azul sólida */
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="selection-box"></div>
+    <!-- O script de preload já foi injetado, não precisamos de tag <script> -->
+</body>
+</html>

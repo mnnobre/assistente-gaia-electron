@@ -1,0 +1,65 @@
+<!-- /src/renderer/js/views/context-viewer-content.html -->
+
+<div id="context-viewer-body">
+    <div id="context-image-preview">
+        <!-- A imagem será inserida aqui pelo script -->
+    </div>
+</div>
+<div id="context-viewer-footer">
+    <button id="context-delete-button" class="context-button-danger">Excluir Anexo</button>
+    <div class="context-recapture-group">
+        <button id="context-recapture-window-button">Capturar Janela</button>
+        <button id="context-recapture-screen-button">Tela Inteira</button>
+        <button id="context-recapture-selection-button" class="context-button-primary">Selecionar Área</button>
+    </div>
+</div>
+
+<!-- Estilos específicos para este conteúdo -->
+<style>
+    /* Faz o layout ocupar todo o espaço do modal */
+    :host {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    #context-viewer-body {
+        padding: 10px;
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden; /* Evita que a imagem vaze */
+    }
+    #context-image-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 6px;
+    }
+    #context-viewer-footer {
+        padding: 12px 20px;
+        border-top: 1px solid #3c4049;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    #context-viewer-footer button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.2s;
+    }
+    .context-recapture-group { display: flex; gap: 10px; }
+    .context-button-danger { background-color: #dc3545; color: white; }
+    .context-button-danger:hover { background-color: #c82333; }
+    .context-button-primary { background-color: #0084ff; color: white; }
+    #context-viewer-footer button:not(.context-button-danger):not(.context-button-primary) {
+        background-color: #4b5263; color: #e6e6e6;
+    }
+    #context-viewer-footer button:not(.context-button-danger):not(.context-button-primary):hover {
+        background-color: #565f73;
+    }
+</style>

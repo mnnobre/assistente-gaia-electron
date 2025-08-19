@@ -1,0 +1,103 @@
+#code-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Mais escuro para focar no código */
+    z-index: 1050; /* Z-index alto para ficar sobre tudo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#code-modal-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#code-modal {
+    background-color: #282c34; /* Mesmo fundo dos editores de código */
+    border: 1px solid var(--secondary-bg);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px; /* Maior e mais largo */
+    height: 85vh; /* Ocupa boa parte da tela */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    transform: scale(1);
+    transition: transform 0.3s ease;
+}
+
+#code-modal-overlay.hidden #code-modal {
+    transform: scale(0.95);
+}
+
+.code-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--secondary-bg);
+    flex-shrink: 0; /* Impede que o header encolha */
+}
+
+.code-modal-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+#code-modal-close-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+#code-modal-close-button:hover {
+    opacity: 1;
+}
+
+.code-modal-body {
+    padding: 0; /* Removemos o padding para o <pre> ocupar tudo */
+    overflow-y: hidden; /* A rolagem será no <pre> */
+    flex-grow: 1;
+    display: flex; /* Para o <pre> esticar */
+}
+
+.code-modal-body pre {
+    flex-grow: 1; /* Faz o <pre> ocupar todo o espaço */
+    margin: 0;
+    padding: 20px;
+    background-color: transparent; /* O fundo já está no modal */
+    overflow: auto; /* Adiciona scrollbars se necessário */
+    white-space: pre;
+    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Estilo da barra de rolagem dentro do modal */
+.code-modal-body pre::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.code-modal-body pre::-webkit-scrollbar-track {
+  background: #282c34;
+}
+.code-modal-body pre::-webkit-scrollbar-thumb {
+  background-color: var(--secondary-bg);
+  border-radius: 10px;
+  border: 2px solid #282c34;
+}
+.code-modal-body pre::-webkit-scrollbar-thumb:hover {
+  background-color: #5c6370;
+}

@@ -1,0 +1,298 @@
+/* ================================================================================= */
+/* COMPONENT: CHAT CONTAINER & SCROLLBAR
+/* ================================================================================= */
+
+#app-container{
+    --chat-bottom: 200px;
+}
+
+#app-container:has(#input-section.hidden){
+    --chat-bottom: 90px;
+}
+
+#chat-container {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse; /* Mantém as novas mensagens embaixo */
+  gap: 12px;
+  transition: opacity 0.4s ease, visibility 0.4s ease, max-height 0.4s ease-in-out;
+  z-index: 102;
+  margin-bottom: var(--chat-bottom);
+  border-radius: 6px;
+  /* Garante que a barra de rolagem não empurre o conteúdo */
+  scrollbar-gutter: stable;
+}
+
+#chat-container:has(*) {
+  background-color: var(--chat-bg);
+  box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2);
+}
+
+#chat-container:hover {
+  max-height: 500px;
+}
+
+#chat-container.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* --- BARRA DE ROLAGEM CUSTOMIZADA --- */
+#chat-container::-webkit-scrollbar {
+  width: 8px;
+}
+#chat-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+#chat-container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+#chat-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+
+/* ================================================================================= */
+/* COMPONENT: MESSAGE BUBBLES & CONTENT
+/* ================================================================================= */
+
+.message {
+  position: relative;
+  display: flex; /* Flexbox para melhor alinhamento interno */
+  max-width: 85%;
+  padding: 10px 16px;
+  border-radius: 20px; /* Bolhas mais arredondadas */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.5s forwards;
+  opacity: 0;
+  line-height: 1.5; /* Melhor espaçamento de linha */
+}
+
+/* Estilo da "cauda" da bolha */
+.user-message {
+  background-color: var(--user-bubble-bg);
+  align-self: flex-end;
+  color: white;
+  border-bottom-right-radius: 5px; /* Canto pontudo */
+}
+
+.assistant-message {
+  background-color: var(--secondary-bg);
+  align-self: flex-start;
+  border-bottom-left-radius: 5px; /* Canto pontudo oposto */
+}
+
+/* O parágrafo dentro da mensagem agora tem um wrapper para o conteúdo */
+.message-content {
+  margin: 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-size: 14px;
+  width: 100%;
+}
+
+/* --- ESTILIZAÇÃO DO MARKDOWN --- */
+.message-content h1,
+.message-content h2,
+.message-content h3 {
+  margin-top: 0.8em;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+}
+.message-content h1 { font-size: 1.5em; }
+.message-content h2 { font-size: 1.3em; }
+.message-content h3 { font-size: 1.15em; }
+.message-content hr { border-color: rgba(255, 255, 255, 0.2); margin: 1em 0; }
+.message-content strong { color: #fff; font-weight: 600; }
+.message-content a { color: #6bb9f8; text-decoration: none; }
+.message-content a:hover { text-decoration: underline; }
+.message-content blockquote {
+  border-left: 3px solid var(--user-bubble-bg);
+  padding-left: 12px;
+  margin-left: 5px;
+  color: #c0c0c0;
+  font-style: italic;
+}
+.message-content ul, .message-content ol { padding-left: 20px; margin: 0.5em 0; }
+.message-content li { margin-bottom: 0.3em; }
+.message-content code:not(pre code) {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: 'Fira Code', 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+.message-content pre {
+  position: relative; /* Para posicionar o botão de cópia */
+  background-color: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0.8em 0;
+}
+.message-content pre code {
+  font-family: 'Fira Code', 'Courier New', Courier, monospace;
+}
+
+/* --- BOTÃO DE COPIAR CONTEXTUAL --- */
+.copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  opacity: 0; /* Invisível por padrão */
+  pointer-events: none; /* Não clicável por padrão */
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Aparece no hover do contêiner do bloco de código ou da mensagem */
+.assistant-message:hover > .copy-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+.copy-button:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+}
+
+
+/* ================================================================================= */
+/* COMPONENT: TYPING INDICATOR & MEETING LIST
+/* ================================================================================= */
+
+.typing-indicator span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin: 0 2px;
+  animation: typing-bounce 1.4s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+.meeting-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.meeting-list-item:last-child { border-bottom: none; }
+.meeting-show-button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  margin-left: 10px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: all 0.2s ease-in-out;
+}
+.meeting-show-button:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* --- NOVO: ESTILOS PARA O BLOCO DE CÓDIGO MELHORADO --- */
+
+/* O contêiner principal para o bloco de código + header */
+.code-block-wrapper {
+    background-color: #21252b; /* Cor de fundo escura */
+    border: 1px solid #3c4049;
+    border-radius: 8px;
+    margin: 0.8em 0;
+    overflow: hidden; /* Garante que o conteúdo não vaze das bordas arredondadas */
+}
+
+/* O novo cabeçalho estiloso */
+.code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background-color: #323842; /* Um pouco mais claro que o fundo do código */
+    border-bottom: 1px solid #3c4049;
+}
+
+/* O rótulo "<> Code" */
+.language-label {
+    color: #9da5b4;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* O grupo de botões à direita */
+.code-block-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Estilo base para os botões de ação do header */
+.code-action-button {
+    background: none;
+    border: none;
+    color: #9da5b4;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.2s, color 0.2s;
+    padding: 2px;
+}
+
+.code-action-button:hover {
+    opacity: 1;
+    color: #e6e6e6;
+}
+
+/* Ajuste no <pre> para ele se encaixar perfeitamente abaixo do header */
+.code-block-wrapper pre {
+    margin: 0; /* Remove a margem padrão do <pre> */
+    border: none; /* Remove a borda padrão que tínhamos */
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    background-color: transparent; /* O fundo agora vem do wrapper */
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out; /* Animação suave */
+}
+
+
+/* A mágica do colapso! */
+.code-block-wrapper.collapsed pre {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden; /* Esconde o conteúdo que transborda */
+}
+
+/* Remove a borda inferior do header quando o bloco está colapsado */
+.code-block-wrapper.collapsed .code-block-header {
+    border-bottom: none;
+}

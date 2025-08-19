@@ -1,0 +1,18 @@
+# docker-compose.yml (Depois)
+
+version: '3.8'
+
+services:
+  chroma:
+    image: chromadb/chroma:latest
+    # --- ADICIONE ESTA LINHA ---
+    restart: always
+    # --------------------------
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+volumes:
+  chroma_data:
+    driver: local

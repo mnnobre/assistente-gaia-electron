@@ -1,0 +1,39 @@
+<!-- /js/views/ai-hub-content.html -->
+
+<div class="ai-hub-section">
+    <h3>Modelo de IA Ativo</h3>
+    <p>Selecione o modelo principal para conversas.</p>
+    <select id="ai-model-select"></select>
+</div>
+
+<!-- Estilos específicos para este conteúdo -->
+<style>
+    .ai-hub-section h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--secondary-bg);
+        padding-bottom: 8px;
+    }
+    .ai-hub-section p {
+        font-size: 13px;
+        color: #b0b0b0;
+        margin-top: 0;
+        margin-bottom: 15px;
+        line-height: 1.5;
+    }
+    #ai-model-select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid var(--secondary-bg);
+        background-color: #3c4049;
+        color: var(--text-color);
+        font-size: 14px;
+        cursor: pointer;
+    }
+    #ai-model-select:focus {
+        outline: none;
+        border-color: var(--user-bubble-bg);
+    }
+</style>

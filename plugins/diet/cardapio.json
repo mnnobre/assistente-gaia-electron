@@ -1,0 +1,37 @@
+{
+  "desjejum_ceia": {
+    "nome": "Desjejum ou Ceia",
+    "horario": "09:00",
+    "opcoes": [
+      { "base": "Proteína", "grupos_permitidos": ["G4"] },
+      { "base": "Fruta", "grupos_permitidos": ["G9"] },
+      { "base": "Carboidrato", "grupos_permitidos": ["G12"] }
+    ]
+  },
+  "almoco": {
+    "nome": "Almoço",
+    "horario": "11:45",
+    "opcoes": [
+      { "base": "Salada", "grupos_permitidos": ["G2"] },
+      { "base": "Legumes", "grupos_permitidos": ["G3"] },
+      { "base": "Proteína", "grupos_permitidos": ["G4"] },
+      { "base": "Carboidrato", "grupos_permitidos": ["G5"] }
+    ]
+  },
+  "lanche": {
+    "nome": "Lanche",
+    "horario": "15:00",
+    "opcoes": [
+      { "base": "Proteína", "grupos_permitidos": ["G4"] },
+      { "base": "Carboidrato", "grupos_permitidos": ["G12"] }
+    ]
+  },
+  "jantar": {
+    "nome": "Jantar",
+    "horario": "18:00",
+    "opcoes": [
+      { "base": "Proteína", "grupos_permitidos": ["G4"] },
+      { "base": "Carboidrato", "grupos_permitidos": ["G5", "G12"] }
+    ]
+  }
+}

@@ -1,0 +1,138 @@
+/* /styles/components/ai-hub.css (NOVO ARQUIVO) */
+
+/* --- Barra de Status da IA --- */
+#ai-status-bar {
+    box-sizing: border-box;
+    position: relative;
+    height: 28px; /* Mais fina que a barra de memória */
+    padding: 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 11px;
+    color: #b0b0b0;
+}
+
+#ai-status-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#ai-hub-button {
+    background: none;
+    border: none;
+    color: #b0b0b0;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.2s, color 0.2s;
+    padding: 4px;
+}
+
+#ai-hub-button:hover {
+    opacity: 1;
+    color: var(--text-color);
+}
+
+
+/* --- Modal do Hub de IA --- */
+#ai-hub-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000; /* Acima do modal de memória */
+    display: flex;
+    padding-top: 16px;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#ai-hub-modal-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#ai-hub-modal {
+    background-color: #282c34;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 450px; /* Menor que o modal de memória */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.ai-hub-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--secondary-bg);
+}
+
+.ai-hub-modal-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    border: none; /* Remove a borda do h2 dentro do modal */
+}
+
+#ai-hub-modal-close-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+#ai-hub-modal-close-button:hover {
+    opacity: 1;
+}
+
+.ai-hub-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.ai-hub-section h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--secondary-bg);
+    padding-bottom: 8px;
+}
+
+.ai-hub-section p {
+    font-size: 13px;
+    color: #b0b0b0;
+    margin-top: 0;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+#ai-model-select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--secondary-bg);
+    background-color: #3c4049;
+    color: var(--text-color);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#ai-model-select:focus {
+    outline: none;
+    border-color: var(--user-bubble-bg);
+}

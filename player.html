@@ -1,0 +1,107 @@
+<!-- Player.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Player de Música</title>
+    <style>
+        body, html { width: 100%; height: 100%; margin: 0; overflow: hidden; font-family: sans-serif; background-color: #121212; }
+        
+        /* --- NOSSA NOVA BARRA DE TÍTULO --- */
+        #title-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 30px; /* Altura fixa para a barra */
+            background-color: #202020;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            user-select: none; /* Impede que o texto seja selecionado */
+        }
+
+        /* A região que o usuário pode clicar e arrastar para mover a janela */
+        .drag-region {
+            flex-grow: 1; /* Ocupa todo o espaço disponível */
+            height: 100%;
+            -webkit-app-region: drag; /* A MÁGICA DO ELECTRON! */
+        }
+
+        #window-title {
+            padding-left: 12px;
+            font-size: 13px;
+        }
+
+        .window-controls {
+            display: flex;
+            height: 100%;
+            /* Importante: esta área não deve ser arrastável */
+            -webkit-app-region: no-drag;
+        }
+
+        .window-controls button {
+            width: 45px;
+            height: 100%;
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .window-controls button:hover {
+            background-color: #383838;
+        }
+        #close-button:hover {
+            background-color: #e81123;
+            color: white;
+        }
+        /* ---------------------------------- */
+
+        #player-container.show-controls #player-ui {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+        #player-ui {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 90px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0) 100%);
+            color: white; z-index: 10;
+            display: flex; align-items: center; justify-content: space-around; padding: 0 20px;
+            opacity: 0;
+            transform: translateY(100%);
+            pointer-events: none;
+            transition: all 0.3s ease-in-out;
+        }
+        #song-info { text-align: left; flex: 1; }
+        #song-title { font-size: 1.1em; font-weight: bold; }
+        #song-artist { font-size: 0.9em; color: #b3b3b3; }
+        .controls button { background: none; border: none; color: white; font-size: 1.8em; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <!-- Adicionando a barra de título ao topo -->
+    <div id="title-bar">
+        <div id="window-title">Player de Música</div>
+        <div class="drag-region"></div> <!-- Área de arrastar -->
+        <div class="window-controls">
+            <button id="minimize-button" title="Minimizar">－</button>
+            <button id="close-button" title="Fechar">✕</button>
+        </div>
+    </div>
+
+    <div id="player-container">
+        <div id="player-ui">
+            <div id="song-info">
+                <div id="song-title"></div>
+                <div id="song-artist"></div>
+            </div>
+            <div class="controls">
+                <button id="prev-button">⏮</button>
+                <button id="play-pause-button">⏯</button>
+                <button id="next-button">⏭</button>
+            </div>
+        </div>
+    </div>
+    <script src="./player-renderer.js"></script>
+</body>
+</html>

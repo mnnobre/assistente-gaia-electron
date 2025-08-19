@@ -1,0 +1,196 @@
+/* /styles/components/input.css (VERSÃO FINAL COM ACTIONS BAR SUPERIOR) */
+#input-section {
+  position: relative;
+  width: 100%;
+  z-index: 101;
+}
+
+#input-section.hidden {
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
+}
+
+#actions-bar {
+    box-sizing: border-box;
+    position: relative;
+    height: 34px;
+    padding: 0 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-group-left, .action-group-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 18px;
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: opacity 0.2s, background-color 0.2s, color 0.2s;
+}
+
+.action-button:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.action-button.active {
+    opacity: 1;
+    color: var(--user-bubble-bg);
+}
+
+#thumbnail-container {
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+}
+
+#thumbnail-container.hidden {
+    display: none;
+}
+
+#thumbnail-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+#thumbnail-container .remove-thumbnail-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #dc3545;
+    color: white;
+    border: 1px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1;
+}
+
+#thumbnail-container:hover .remove-thumbnail-btn {
+    opacity: 1;
+}
+
+#input-container {
+  box-sizing: border-box;
+  position: relative;
+  height: auto;
+  min-height: 80px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-end; 
+  background-color: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#message-input {
+  flex: 1;
+  border: none;
+  background-color: var(--secondary-bg);
+  border-radius: 20px;
+  padding: 10px 15px;
+  color: var(--text-color);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.4;
+  overflow-y: auto; 
+  resize: none; 
+  max-height: 150px; 
+  box-sizing: border-box;
+}
+
+#message-input:focus-visible {
+  outline: 0;
+}
+
+#send-button {
+  margin-left: 10px;
+  border: none;
+  background-color: var(--user-bubble-bg);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  align-self: center; 
+}
+
+#autocomplete-container {
+  position: absolute;
+  bottom: 80px; 
+  left: 16px;
+  right: 16px;
+  background-color: var(--secondary-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 200;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s, transform 0.2s, bottom 0.2s ease-out;
+}
+
+#autocomplete-container.hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+.autocomplete-suggestion {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.autocomplete-suggestion:last-child { border-bottom: none; }
+.autocomplete-suggestion:hover,
+.autocomplete-suggestion.selected { background-color: var(--user-bubble-bg); }
+.autocomplete-suggestion .command { font-weight: bold; }
+.autocomplete-suggestion .description {
+  font-size: 0.9em;
+  color: #b0b0b0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 10px;
+}
+
+/* --- NOVO ESTILO PARA O ESTADO DE CARREGAMENTO --- */
+#input-container.loading #message-input,
+#input-container.loading #send-button {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

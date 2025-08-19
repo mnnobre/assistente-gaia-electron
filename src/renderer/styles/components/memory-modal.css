@@ -1,0 +1,265 @@
+#memory-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+    display: flex;
+    padding-top: 16px;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#memory-modal-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#memory-modal {
+    background-color: #282c34;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.memory-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--secondary-bg);
+    gap: 15px;
+}
+
+.memory-modal-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.memory-modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#show-pinned-button, #back-to-sessions-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.7;
+    padding: 5px;
+}
+#show-pinned-button:hover, #back-to-sessions-button:hover {
+    opacity: 1;
+}
+
+#back-to-sessions-button {
+    display: none; /* Começa escondido */
+}
+
+#memory-modal-close-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+}
+#memory-modal-close-button:hover {
+    opacity: 1;
+}
+
+.memory-modal-body {
+    padding: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+#memory-search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--secondary-bg);
+    background-color: #3c4049;
+    color: var(--text-color);
+    font-size: 14px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.memory-session-item {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.memory-session-item.expanded {
+    border-color: var(--secondary-bg);
+}
+
+.memory-session-header {
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.memory-session-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.memory-session-content {
+    padding: 10px 15px;
+    display: none;
+    border-top: 1px solid var(--secondary-bg);
+}
+
+.memory-chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.memory-turn-container {
+    padding: 8px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+.memory-turn-container:last-child {
+    border-bottom: none;
+}
+
+.memory-message {
+    display: flex;
+    align-items: center; 
+    gap: 10px;
+    max-width: 95%;
+    position: relative;
+    padding: 4px 0;
+}
+
+.memory-message .message {
+    padding: 6px 12px;
+    font-size: 13px;
+    flex-grow: 1;
+}
+
+.memory-message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.memory-message.assistant {
+    align-self: flex-start;
+}
+
+.message-actions {
+    display: flex;
+    gap: 5px;
+    position: absolute;
+    bottom: -8px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.memory-message:hover .message-actions,
+.memory-message.is-editing .message-actions {
+    opacity: 1;
+}
+
+.memory-message.is-editing .message-actions {
+    display: none; /* Esconde os botões de pin/edit quando estiver editando */
+}
+
+.memory-message.user .message-actions {
+    left: -10px;
+}
+
+.memory-message.assistant .message-actions {
+    right: -10px;
+}
+
+.message-actions button {
+    background: var(--secondary-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    cursor: pointer;
+    opacity: 0.8;
+    font-size: 12px;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+.message-actions button:hover {
+    opacity: 1;
+    background-color: var(--user-bubble-bg);
+}
+
+.message-actions .pin-button.pinned {
+    background-color: #e81123;
+    color: white;
+    opacity: 1;
+}
+
+.edit-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.edit-textarea {
+    width: 100%;
+    min-height: 60px;
+    border: 1px solid var(--user-bubble-bg);
+    background-color: #2c2f36;
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+}
+
+.edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.edit-actions button {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.edit-actions .save-button {
+    background-color: var(--user-bubble-bg);
+    color: white;
+}
+
+.edit-actions .cancel-button {
+    background-color: var(--secondary-bg);
+    color: var(--text-color);
+}

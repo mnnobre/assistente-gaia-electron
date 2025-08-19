@@ -1,0 +1,50 @@
+<!-- /views/memory-content.html -->
+
+<div id="memory-controls">
+    <input type="search" id="memory-search-input" placeholder="Pesquisar na memória...">
+    <div id="memory-actions">
+        <button id="back-to-sessions-button" title="Voltar">⬅️</button>
+        <button id="show-pinned-button" title="Mostrar Fixadas">📌</button>
+    </div>
+</div>
+<div id="memory-sessions-list">
+    <!-- O conteúdo será preenchido pelo memory-renderer.js -->
+</div>
+
+<!-- Estilos específicos para este conteúdo -->
+<style>
+    /* Estilos gerais do conteúdo do modal de memória */
+    #memory-controls { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
+    #memory-search-input { flex-grow: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #3c4049; background-color: #3c4049; color: #e6e6e6; font-size: 14px; }
+    #memory-actions button { background: none; border: none; color: #e6e6e6; cursor: pointer; font-size: 16px; opacity: 0.7; padding: 5px; }
+    #memory-actions button:hover { opacity: 1; }
+    #back-to-sessions-button { display: none; }
+    .memory-session-item { background-color: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 10px; border: 1px solid transparent; transition: border-color 0.2s; }
+    .memory-session-item.expanded { border-color: #3c4049; }
+    .memory-session-header { padding: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+    .memory-session-header-title { display: flex; align-items: center; gap: 10px; }
+    .memory-session-content { padding: 10px 15px; display: none; border-top: 1px solid #3c4049; }
+    .memory-chat-container { display: flex; flex-direction: column; gap: 15px; }
+    .memory-turn-container { padding: 8px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); }
+    .memory-turn-container:last-child { border-bottom: none; }
+    .memory-message { display: flex; align-items: center; gap: 10px; max-width: 95%; position: relative; padding: 4px 0; }
+    .memory-message .message { padding: 6px 12px; font-size: 13px; flex-grow: 1; background-color: #3c4049; border-radius: 18px; }
+    .memory-message.user .message { background-color: #0084ff; color: white; border-bottom-right-radius: 5px; }
+    .memory-message.assistant .message { border-bottom-left-radius: 5px; }
+    .memory-message.user { align-self: flex-end; flex-direction: row-reverse; }
+    .memory-message.assistant { align-self: flex-start; }
+    .message-actions { display: flex; gap: 5px; position: absolute; bottom: -8px; opacity: 0; transition: opacity 0.2s ease-in-out; }
+    .memory-message:hover .message-actions, .memory-message.is-editing .message-actions { opacity: 1; }
+    .memory-message.is-editing .message-actions { display: none; }
+    .memory-message.user .message-actions { left: -10px; }
+    .memory-message.assistant .message-actions { right: -10px; }
+    .message-actions button { background: #3c4049; border: 1px solid rgba(255, 255, 255, 0.1); color: #e6e6e6; cursor: pointer; opacity: 0.8; font-size: 12px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .message-actions button:hover { opacity: 1; background-color: #0084ff; }
+    .message-actions .pin-button.pinned { background-color: #e81123; color: white; opacity: 1; }
+    .edit-container { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .edit-textarea { width: 100%; min-height: 60px; border: 1px solid #0084ff; background-color: #2c2f36; color: #e6e6e6; border-radius: 8px; padding: 8px; font-family: inherit; font-size: 13px; resize: vertical; }
+    .edit-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .edit-actions button { padding: 4px 12px; border: none; border-radius: 5px; cursor: pointer; }
+    .edit-actions .save-button { background-color: #0084ff; color: white; }
+    .edit-actions .cancel-button { background-color: #3c4049; color: #e6e6e6; }
+</style>

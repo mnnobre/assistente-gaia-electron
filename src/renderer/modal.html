@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Modal</title>
+    <!-- Carregaremos o estilo que vamos criar a seguir -->
+    <link rel="stylesheet" href="./styles/components/modal.css">
+</head>
+<body>
+    <div id="modal-container">
+        <div id="modal-header">
+            <!-- O título será preenchido pelo JavaScript -->
+            <h2 id="modal-title">Carregando...</h2>
+            <!-- A região de arrastar a janela -->
+            <div class="drag-region"></div>
+            <button id="modal-close-button">&times;</button>
+        </div>
+        <div id="modal-body">
+            <!-- O conteúdo específico (memória, IA, código) será injetado aqui -->
+            <div id="modal-content-host"></div>
+        </div>
+    </div>
+    <!-- Script que controla esta janela -->
+    <script type="module" src="./js/modal-renderer.js"></script>
+</body>
+</html>

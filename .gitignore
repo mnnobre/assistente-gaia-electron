@@ -1,0 +1,28 @@
+# Arquivo gerado para o projeto G.A.I.A.
+
+# Dependências do Node.js - NUNCA devem ir para o repositório.
+# Elas são instaladas com 'npm install' em cada máquina.
+node_modules/
+
+# Arquivo de ambiente - CRÍTICO E SECRETO!
+# Contém suas chaves de API do Gemini e OpenAI. Subir isso tornaria suas chaves públicas.
+.env
+
+# Arquivos de Build e Distribuição
+# Gerados pelo Electron Builder, não fazem parte do código-fonte.
+release/
+dist/
+out/
+build/
+
+# Arquivo de exportação do projeto - Gerado e redundante.
+projeto_completo.txt
+
+# Logs de depuração do Node.js e NPM
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db

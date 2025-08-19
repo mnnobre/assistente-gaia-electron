@@ -1,0 +1,44 @@
+{
+  "G1": [
+    { "nome": "Cacau", "qtd": "1 Col. S. Ras (10g)" },
+    { "nome": "Café infusão (10%)", "qtd": "1 X. café (80ml)" },
+    { "nome": "Chá Mate, infusão (5%)", "qtd": "1 X. chá (180ml)" }
+  ],
+  "G2": [
+    { "nome": "Acelga", "qtd": "1 porção(ões) (50g)" },
+    { "nome": "Alface, crespa/lisa/americana", "qtd": "1 porção(ões) (50g)" },
+    { "nome": "Agrião", "qtd": "1 porção(ões) (50g)" }
+  ],
+  "G3": [
+    { "nome": "Abobrinha italiana, cozida", "qtd": "2 Col. A. (135g)" },
+    { "nome": "Abóbora cabotian, cozida", "qtd": "1 Col. S. (37g)" },
+    { "nome": "Beterraba cozida", "qtd": "2 Ft. G (55g)" }
+  ],
+  "G4": [
+    { "nome": "Acém, moído, cozido", "qtd": "2 Col. S. (55g)" },
+    { "nome": "Alcatra, sem gordura, grelhada", "qtd": "1 Bife P. (50g)" },
+    { "nome": "Frango, peito, desfiado", "qtd": "2 Col. S. (50g)" },
+    { "nome": "Patinho, sem gordura, moído", "qtd": "3 Col. S. (45g)" },
+    { "nome": "Tilápia, filé", "qtd": "1 Filé P. (60g)" },
+    { "nome": "Ovo", "qtd": "1 Und." }
+  ],
+  "G5": [
+      { "nome": "Arroz integral, cozido", "qtd": "1.5 Col. S. (30g)" },
+      { "nome": "Arroz tipo 1 ou 2, cozido", "qtd": "1 Col. S. (25g)" },
+      { "nome": "Batata doce, cozida", "qtd": "1 Fatia P. (40g)" },
+      { "nome": "Batata inglesa, cozida", "qtd": "2 Col. S. (60g)" },
+      { "nome": "Mandioca cozida", "qtd": "1 Col. S. (25g)" }
+  ],
+  "G9": [
+    { "nome": "Abacaxi", "qtd": "2 Ft. P (120g)" },
+    { "nome": "Banana prata", "qtd": "1 Und. (55g)" },
+    { "nome": "Maçã Fuji", "qtd": "1 Unid. P. (100g)" },
+    { "nome": "Mamão papaia", "qtd": "0.5 Und. P. (135g)" }
+  ],
+  "G12": [
+    { "nome": "Pão de forma integral", "qtd": "1 Ft. (25g)" },
+    { "nome": "Cuscuz de milho", "qtd": "1 Col. S. Ch. (15g)" },
+    { "nome": "Tapioca goma", "qtd": "1 Col. S. (20g)" },
+    { "nome": "Aveia flocos crua", "qtd": "1 Col. S. (18g)" }
+  ]
+}

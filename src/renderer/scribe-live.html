@@ -1,0 +1,42 @@
+<!-- /src/renderer/scribe-live.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Transcrição ao Vivo</title>
+    <link rel="stylesheet" href="./styles/components/scribe-live.css">
+</head>
+<body>
+    <div id="main-wrapper">
+        <div id="resizer"></div>
+
+        <div id="header">
+            <span id="header-title">🔴 Transcrição ao Vivo</span>
+            <div id="header-actions">
+                <!-- BOTÃO DE ANÁLISE ADICIONADO -->
+                <button id="analyze-button" title="Analisar com IA">✨</button>
+            </div>
+        </div>
+
+        <div id="chat-container">
+            <!-- Conteúdo será adicionado dinamicamente pelo JS -->
+        </div>
+
+        <!-- NOVO PAINEL DE ANÁLISE (inicialmente oculto) -->
+        <div id="analysis-panel" class="hidden">
+            <div id="quick-prompts">
+                <button data-prompt="Resuma os pontos principais.">Resumir</button>
+                <button data-prompt="Liste as tarefas ou itens de ação mencionados.">Listar Tarefas</button>
+                <button data-prompt="Identifique as principais dúvidas ou questões levantadas.">Identificar Dúvidas</button>
+            </div>
+            <div id="analysis-input-container">
+                <textarea id="analysis-input" placeholder="Pergunte algo sobre os trechos selecionados..." rows="1"></textarea>
+                <button id="analysis-send-button">Perguntar</button>
+            </div>
+        </div>
+        <!-- FIM DO NOVO PAINEL -->
+    </div>
+
+    <script type="module" src="./js/scribe-live-renderer.js"></script>
+</body>
+</html>

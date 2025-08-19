@@ -1,0 +1,83 @@
+#pomodoro-widget {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 260px;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 150;
+  opacity: 0;
+  transform: translateY(50px);
+  transition: all 0.4s ease-in-out;
+  pointer-events: none;
+}
+
+#pomodoro-widget:not(.hidden) {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+#pomodoro-widget * {
+  pointer-events: all;
+}
+
+#pomodoro-display {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#pomodoro-time {
+  font-size: 2.5em;
+  font-weight: bold;
+}
+
+.pomodoro-progress-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.pomodoro-progress-ring__background {
+  fill: transparent;
+  stroke: var(--secondary-bg);
+  stroke-width: 8;
+}
+
+.pomodoro-progress-ring__circle {
+  fill: transparent;
+  stroke: var(--user-bubble-bg);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 1s linear;
+}
+
+#pomodoro-state {
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+#pomodoro-controls button {
+  background: none;
+  border: 1px solid var(--secondary-bg);
+  color: var(--text-color);
+  padding: 8px 16px;
+  border-radius: 15px;
+  cursor: pointer;
+  margin: 0 5px;
+  transition: background-color 0.2s;
+}
+
+#pomodoro-controls button:hover {
+  background-color: var(--secondary-bg);
+}

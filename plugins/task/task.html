@@ -1,0 +1,126 @@
+<!-- /plugins/task/task.html (VERSÃO FINAL E COMPLETA) -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Central de Tarefas</title>
+    <link rel="stylesheet" href="task.css">
+</head>
+<body>
+    <!-- Container para as notificações -->
+    <div id="toast-container"></div>
+
+    <div class="container">
+        <h1>Central de Tarefas</h1>
+
+        <!-- Seção de Listagem de Tarefas Recentes -->
+        <div class="section" id="recent-tasks-section">
+            <div class="section-header">
+                <h2>Tarefas Recentes</h2>
+                <button id="new-task-btn">Nova Tarefa</button>
+            </div>
+            <div id="tasks-list-container">
+                <!-- A lista de tarefas será inserida aqui pelo JS -->
+                <p>Carregando tarefas...</p>
+            </div>
+        </div>
+
+        <!-- Seção 1: Dados da Tarefa -->
+        <div class="section" id="task-selection-section">
+            <h2 id="task-form-title">Nova Tarefa</h2> <!-- Título dinâmico -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="company-select">Empresa:</label>
+                    <div class="select-wrapper">
+                        <select id="company-select">
+                            <option value="">-- Selecione uma Empresa --</option>
+                        </select>
+                        <button id="add-company-btn" title="Nova Empresa">+</button>
+                    </div>
+                </div>
+                <div class="form-group add-new-form hidden" id="new-company-form">
+                    <label for="new-company-name">Nome da Nova Empresa:</label>
+                    <div class="input-actions-wrapper">
+                        <input type="text" id="new-company-name" placeholder="Nome da Empresa">
+                        <button id="save-new-company-btn" class="save-btn">Salvar</button>
+                        <button id="cancel-new-company-btn" class="cancel-btn">X</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="project-select">Projeto:</label>
+                    <div class="select-wrapper">
+                        <select id="project-select" disabled>
+                            <option value="">-- Selecione um Projeto --</option>
+                        </select>
+                        <button id="add-project-btn" title="Novo Projeto" disabled>+</button>
+                    </div>
+                </div>
+                <div class="form-group add-new-form hidden" id="new-project-form">
+                    <label for="new-project-name">Nome do Novo Projeto:</label>
+                    <div class="input-actions-wrapper">
+                        <input type="text" id="new-project-name" placeholder="Nome do Projeto">
+                        <button id="save-new-project-btn" class="save-btn">Salvar</button>
+                        <button id="cancel-new-project-btn" class="cancel-btn">X</button>
+                    </div>
+                </div>
+                <div class="form-group span-2">
+                    <label for="task-title">Título da Tarefa:</label>
+                    <input type="text" id="task-title" placeholder="Ex: Integrar nova API de pagamentos">
+                </div>
+                <div class="form-group span-2">
+                    <label for="task-url">URL do ClickUp:</label>
+                    <input type="url" id="task-url" placeholder="https://app.clickup.com/t/...">
+                </div>
+            </div>
+            <div class="action-buttons" id="task-form-actions">
+                <button id="delete-task-btn" class="cancel-btn" style="display: none;">Excluir</button>
+                <button id="edit-task-btn" style="display: none;">Editar Tarefa</button>
+                <button id="save-task-btn" class="primary-btn">Criar Tarefa</button>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Seção 2: Registro de Trabalho -->
+        <div class="section" id="work-log-section" style="display: none;">
+            <h2>Registro de Trabalho do Dia</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="log-date">Data:</label>
+                    <input type="date" id="log-date">
+                </div>
+                <div class="form-group">
+                    <label for="log-hours">Horas Trabalhadas:</label>
+                    <input type="text" id="log-hours" placeholder="Ex: 2.5">
+                </div>
+            </div>
+            <div id="log-generator">
+                <h3>Documentação</h3>
+                <div id="applicationsContainer">
+                </div>
+                <div class="add-item-form">
+                  <input type="text" id="newAppName" placeholder="Nome da Aplicação">
+                  <button id="submitNewApplicationBtn">Adicionar Aplicação</button>
+                </div>
+                <textarea id="logOutput" rows="10" readonly placeholder="Preview do Log gerado..."></textarea>
+            </div>
+            <div class="action-buttons">
+                <button id="save-log-db-btn">Salvar Registro no Banco</button>
+                <button id="sync-clickup-btn" disabled>Enviar p/ ClickUp</button>
+                <button id="sync-clockify-btn" disabled>Enviar p/ Clockify</button>
+            </div>
+        </div>
+
+        <!-- NOVA SEÇÃO: Histórico de Logs -->
+        <div class="section" id="work-log-history-section" style="display: none;">
+            <h2>Histórico de Logs para esta Tarefa</h2>
+            <div id="work-log-history-container">
+                <!-- Logs salvos serão inseridos aqui pelo JS -->
+            </div>
+        </div>
+
+    </div>
+
+    <script src="task-renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Assistente Virtual</title>
+    <link rel="stylesheet" href="./styles/main.css">
+    <link rel="stylesheet" href="./styles/components/character.css">
+    <link rel="stylesheet" href="./styles/components/chat.css">
+    <link rel="stylesheet" href="./styles/components/input.css">
+    <link rel="stylesheet" href="./styles/components/player.css">
+    <link rel="stylesheet" href="./styles/components/pomodoro.css">
+    <link rel="stylesheet" href="./styles/components/ai-hub.css">
+</head>
+<body>
+    <div id="main-container">
+
+        <div id="pomodoro-widget" class="hidden">
+            <div id="pomodoro-display">
+                <svg class="pomodoro-progress-ring" width="160" height="160">
+                    <circle class="pomodoro-progress-ring__background" r="70" cx="80" cy="80"></circle>
+                    <circle class="pomodoro-progress-ring__circle" r="70" cx="80" cy="80"></circle>
+                </svg>
+                <div id="pomodoro-time">25:00</div>
+            </div>
+            <div id="pomodoro-state">Foco</div>
+            <div id="pomodoro-controls">
+                <button id="pomodoro-start-pause">▶️ Iniciar</button>
+                <button id="pomodoro-reset">⏹️ Parar</button>
+            </div>
+        </div>
+
+        <div id="app-container">
+            
+            <div id="input-section">
+                <div id="autocomplete-container" class="hidden"></div>
+                
+                <div id="actions-bar">
+                    <div class="action-group-left">
+                        <button id="memory-toggle-button" class="action-button" title="Usar Memória (Desativado)">🧠</button>
+                        <button id="context-menu-button" class="action-button" title="Anexar Contexto Visual">🖼️</button>
+                        <div id="thumbnail-container" class="hidden"></div>
+                    </div>
+                    <div class="action-group-right">
+                        <button id="memory-window-button" class="action-button" title="Gerenciar Memória">📚</button>
+                    </div>
+                </div>
+
+                <div id="input-container">
+                    <textarea id="message-input" placeholder="Digite sua mensagem..." rows="1"></textarea>
+                    <button id="send-button">Enviar</button>
+                </div>
+
+                <div id="ai-status-bar">
+                    <span id="ai-status-text">IA Ativa: Carregando...</span>
+                    <button id="ai-hub-button" title="Configurar IA">⚙️</button>
+                </div>
+            </div>
+
+            <div id="character-container">
+                <div id="speech-bubble" class="hidden">
+                    <p>Olá! Estou pronto para ajudar.</p>
+                </div>
+                <!-- Você precisará ter uma imagem character.png na pasta src/renderer/ -->
+                <img src="./character.png" alt="Personagem" id="character-image">
+            </div>
+
+            <div id="chat-container"></div>
+        </div>
+
+        <div id="mini-player" class="hidden">
+            <div id="mini-player-info">
+                <p id="mini-player-title">Nome da Música</p>
+                <p id="mini-player-artist">Artista</p>
+            </div>
+            <div id="mini-player-controls">
+                <button id="mini-prev-button" title="Anterior"><svg class="player-icon" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg></button>
+                <button id="mini-play-pause-button" title="Tocar/Pausar"><svg class="player-icon icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg><svg class="player-icon icon-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg></button>
+                <button id="mini-next-button" title="Próxima"><svg class="player-icon" viewBox="0 0 24 24"><path d="M16 6h2v12h-2zm-4.5 6l-8.5 6V6z"></path></svg></button>
+                <button id="mini-stop-button" title="Parar"><svg class="player-icon" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"></path></svg></button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/renderer.js"></script>
+</body>
+</html>

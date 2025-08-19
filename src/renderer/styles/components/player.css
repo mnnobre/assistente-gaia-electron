@@ -1,0 +1,95 @@
+#mini-player {
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #1a1a1a;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 16px;
+  color: var(--text-color);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+}
+#mini-player.hidden {
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
+}
+#mini-player-info {
+  flex-grow: 1;
+  min-width: 0;
+  overflow: hidden;
+  cursor: pointer;
+}
+#mini-player-info p {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#mini-player-title {
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+}
+#mini-player-title span {
+  display: inline-block;
+  white-space: nowrap;
+  padding-right: 20px;
+}
+#mini-player-info:hover #mini-player-title span {
+  animation: marquee 8s linear infinite;
+}
+#mini-player-artist {
+  font-size: 12px;
+  color: #b3b3b3;
+}
+#mini-player-controls {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+}
+
+#mini-player-controls button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 6px;
+  line-height: 1;
+  transition: all 0.2s;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#mini-player-controls button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.player-icon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+#mini-play-pause-button .icon-pause {
+  display: none;
+}
+
+#mini-play-pause-button.is-playing .icon-play {
+  display: none;
+}
+
+#mini-play-pause-button.is-playing .icon-pause {
+  display: block;
+}
