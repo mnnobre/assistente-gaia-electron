@@ -39,6 +39,17 @@ async function initializeDatabase(app) {
                 PRIMARY KEY (game_id, tag_id)
             );
 
+            -- INÍCIO DA ALTERAÇÃO --
+            CREATE TABLE IF NOT EXISTS game_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id INTEGER NOT NULL,
+                log_text TEXT NOT NULL,
+                mood_rating INTEGER CHECK(mood_rating >= 1 AND mood_rating <= 5),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+            );
+            -- FIM DA ALTERAÇÃO --
+
             CREATE TABLE IF NOT EXISTS notes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 content TEXT NOT NULL,
@@ -218,23 +229,13 @@ async function findGamesByTag(tagName) {
     `, [normalizedTag]);
 }
 
-// --- NOVA FUNÇÃO DE BUSCA POR MÚLTIPLAS TAGS ---
-/**
- * Busca jogos que correspondam a QUALQUER uma das tags fornecidas.
- * @param {string[]} tagNames - Um array de tags para buscar.
- * @returns {Promise<object[]>} Um array de jogos únicos que correspondem.
- */
 async function findGamesByTags(tagNames = []) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     if (tagNames.length === 0) return [];
     
-    // Normaliza todas as tags para a busca
     const normalizedTags = tagNames.map(t => t.trim().toLowerCase());
-    
-    // Cria os placeholders para a query SQL (ex: ?,?,?)
     const placeholders = normalizedTags.map(() => '?').join(',');
 
-    // A query agora busca jogos onde o nome da tag está DENTRO da lista fornecida
     const query = `
         SELECT DISTINCT g.*
         FROM games g
@@ -246,6 +247,23 @@ async function findGamesByTags(tagNames = []) {
     return await db.all(query, normalizedTags);
 }
 
+// --- INÍCIO DA ALTERAÇÃO --
+/**
+ * Adiciona um novo registro de log de jogo.
+ * @param {number} gameId - O ID do jogo.
+ * @param {string} logText - O texto da anotação.
+ * @param {number|null} moodRating - A nota de humor (1-5), opcional.
+ * @returns {Promise<number>} O ID do log inserido.
+ */
+async function addGameLog(gameId, logText, moodRating = null) {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    const result = await db.run(
+        "INSERT INTO game_logs (game_id, log_text, mood_rating) VALUES (?, ?, ?)",
+        [gameId, logText, moodRating]
+    );
+    return result.lastID;
+}
+// --- FIM DA ALTERAÇÃO --
 
 async function addNote(content) {
   if (!db) throw new Error("Banco de dados não inicializado.");
@@ -490,7 +508,8 @@ module.exports = {
       addGame,
       listGames,
       findGamesByTag,
-      findGamesByTags, // <-- NOVA EXPORTAÇÃO
+      findGamesByTags,
+      addGameLog, // <-- NOVA EXPORTAÇÃO
   },
   notes: { add: addNote, list: listNotes, clear: clearNotes, delete: deleteNoteById },
   scribe: { 
