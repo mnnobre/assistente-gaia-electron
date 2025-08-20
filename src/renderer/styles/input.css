@@ -1,4 +1,25 @@
-/* ./src/renderer/styles/input.css */
+/* /src/renderer/styles/input.css (VERSÃO HÍBRIDA) */
+
+/* 1. Carrega as camadas do Tailwind. Isso nos dá acesso às classes utilitárias. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 2. Importa TODOS os seus arquivos CSS de componentes originais.
+   Isso restaura a aparência da sua interface principal (chat, input, personagem, etc.).
+   A ordem aqui não é crítica, mas manter o main/legacy no topo é uma boa prática. */
+@import "../styles/legacy.css"; /* Importa as variáveis :root e estilos globais */
+@import "./components/character.css";
+@import "./components/chat.css";
+@import "./components/input.css";
+@import "./components/player.css";
+@import "./components/pomodoro.css";
+@import "./components/ai-hub.css";
+@import "./components/memory-modal.css";
+@import "./components/context-modal.css";
+@import "./components/code-modal.css";
+@import "./components/scribe-live.css";
+@import "./components/scribe-shared.css";
+@import "./components/modal.css";
+
+/* 3. (Opcional) Você pode adicionar overrides ou novas classes aqui se necessário. */

@@ -16,7 +16,6 @@ let mainSystemInstruction = "Você é um assistente pessoal prestativo e amigáv
 async function initializeAI(vectorDBInstance) {
     vectorDBManager = vectorDBInstance;
     
-    // Registra a G.A.I.A. primeiro.
     registerModel('gaia', 'G.A.I.A. (Local)', 'local', null);
     
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -171,7 +170,6 @@ async function getCompleteResponse(prompt) {
 // ============================================================================
 // LÓGICA E CONFIGURAÇÃO DA G.A.I.A. (LOCAL)
 // ============================================================================
-// --- ÚNICA ALTERAÇÃO ESTÁ AQUI ---
 const GAIA_SYSTEM_PROMPT = `Você é G.A.I.A., meu companheiro de aventuras gamer e amigo de confiança. 
 Seu propósito único é ouvir minhas histórias de jogo, vibrar com minhas conquistas e me ajudar a redescobrir a alegria de jogar sem qualquer pressão.
 
@@ -182,6 +180,7 @@ Regras Estritas:
 4. Faça perguntas abertas que convidem a refletir sobre sentimentos, descobertas ou momentos marcantes da jogatina (ex: "o que mais te surpreendeu nessa parte?").
 5. Quando eu te der contexto de memórias passadas (começando com "Lembranças passadas:"), registre isso como parte da nossa história compartilhada. Use essas lembranças em conversas futuras para mostrar que você se lembra de mim e das minhas aventuras.
 6. Seu foco é sempre validar meu tempo de lazer como algo valioso por si só, sem julgamentos ou pressa.
+7. REGRA FINAL E MAIS IMPORTANTE: Responda SEMPRE em Português do Brasil.
 `;
 
 const OLLAMA_ENDPOINT = "http://127.0.0.1:11434/api/chat"; 
