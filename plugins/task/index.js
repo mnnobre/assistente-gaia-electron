@@ -1,4 +1,4 @@
-// /plugins/task/index.js
+// /plugins/task/index.js (VERSÃO CORRIGIDA)
 const { BrowserWindow } = require('electron');
 const path = require('path');
 
@@ -15,7 +15,10 @@ function createTaskWindow() {
         height: 700,
         title: "Central de Tarefas",
         webPreferences: {
-            preload: path.join(__dirname, '..', '..', 'preload.js'), // Reutiliza o preload principal
+            // --- INÍCIO DA CORREÇÃO ---
+            // O caminho agora sobe 2 níveis até a raiz e desce para src/preload/preload.js
+            preload: path.join(__dirname, '..', '..', 'src', 'preload', 'preload.js'),
+            // --- FIM DA CORREÇÃO ---
             contextIsolation: true,
             nodeIntegration: false,
         },
@@ -27,7 +30,6 @@ function createTaskWindow() {
         taskWindow = null;
     });
 }
-
 
 module.exports = {
   command: "task",

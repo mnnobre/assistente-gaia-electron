@@ -1,7 +1,7 @@
-// /plugins/task/task-renderer.js (VERSÃO FINAL E COMPLETA)
+// /plugins/task/task-renderer.js (VERSÃO AJUSTADA PARA DAISYUI)
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- Seletores de Elementos ---
+    // --- Seletores de Elementos (sem alterações) ---
     const companySelect = document.getElementById('company-select');
     const addCompanyBtn = document.getElementById('add-company-btn');
     const projectSelect = document.getElementById('project-select');
@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveTaskBtn = document.getElementById('save-task-btn');
     const editTaskBtn = document.getElementById('edit-task-btn');
     const deleteTaskBtn = document.getElementById('delete-task-btn');
-    
     const newCompanyForm = document.getElementById('new-company-form');
     const newCompanyNameInput = document.getElementById('new-company-name');
     const saveNewCompanyBtn = document.getElementById('save-new-company-btn');
@@ -31,50 +30,88 @@ document.addEventListener('DOMContentLoaded', () => {
     const logDateInput = document.getElementById('log-date');
     const logHoursInput = document.getElementById('log-hours');
     const saveLogDbBtn = document.getElementById('save-log-db-btn');
-    
     const workLogHistorySection = document.getElementById('work-log-history-section');
     const workLogHistoryContainer = document.getElementById('work-log-history-container');
     
-    // --- Variáveis de Estado ---
+    // --- Variáveis de Estado (sem alterações) ---
     let loadedTasks = [];
     let applicationsData = [];
     let currentTaskId = null;
 
     // --- Sistema de Notificações (Toast) ---
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // A função agora gera o HTML esperado pela daisyUI para os toasts.
     function showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        container.appendChild(toast);
+        const alertDiv = document.createElement('div');
+        // Usamos as classes `alert-success` e `alert-error` da daisyUI
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+        alertDiv.className = `alert ${alertClass} shadow-lg`;
+        alertDiv.innerHTML = `<span>${message}</span>`;
+        container.appendChild(alertDiv);
 
+        // Animação de fade out
         setTimeout(() => {
-            toast.remove();
-        }, 4000);
+            alertDiv.style.opacity = '0';
+            alertDiv.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 500);
+        }, 3500);
     }
+    // --- FIM DA ALTERAÇÃO ---
 
     // --- LÓGICA DO GERADOR DE LOGS ---
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // A lógica foi atualizada para usar os componentes e classes da daisyUI
     function renderApplications() {
         applicationsContainer.innerHTML = '';
         applicationsData.forEach((app, appIndex) => {
             const appDiv = document.createElement('div');
-            appDiv.classList.add('application');
-            appDiv.innerHTML = `<div class="item-header"><strong>Aplicação: ${app.name}</strong><span class="item-actions"><button class="deleteAppBtn" data-app-index="${appIndex}" title="Excluir Aplicação">❌</button></span></div><div class="modulesContainer"></div><div class="add-module-form"><input type="text" class="newModuleNameInput" placeholder="Nome do Novo Módulo"><button class="addModuleBtn" data-app-index="${appIndex}">Adicionar Módulo</button></div>`;
-            applicationsContainer.appendChild(appDiv);
-            const modulesContainer = appDiv.querySelector('.modulesContainer');
+            appDiv.className = 'collapse collapse-arrow bg-base-200';
+            let modulesHTML = '';
             app.modules.forEach((mod, modIndex) => {
-                const modDiv = document.createElement('div');
-                modDiv.classList.add('module');
                 let modificationsHTML = '';
                 mod.modifications.forEach((item, itemIndex) => {
-                    modificationsHTML += `<li class="modification-item"><span class="modification-content">• ${item.text}</span><span class="modification-actions"><button class="deleteModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" data-item-index="${itemIndex}" title="Excluir Modificação">❌</button></span></li>`;
+                    modificationsHTML += `
+                        <li class="flex justify-between items-center py-1">
+                            <span>• ${item.text}</span>
+                            <button class="btn btn-xs btn-ghost deleteModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" data-item-index="${itemIndex}" title="Excluir Modificação">✕</button>
+                        </li>`;
                 });
-                modDiv.innerHTML = `<div class="item-header"><strong>Módulo: ${mod.name}</strong><span class="item-actions"><button class="deleteModuleBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" title="Excluir Módulo">❌</button></span></div><ul class="modificationsList">${modificationsHTML}</ul><div class="add-modification-form"><input type="text" class="newModificationInput" placeholder="Item modificado"><button class="addModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}">Adicionar Modificação</button></div>`;
-                modulesContainer.appendChild(modDiv);
+                modulesHTML += `
+                    <div class="ml-4 mt-2">
+                        <div class="flex justify-between items-center">
+                            <strong class="text-sm">Módulo: ${mod.name}</strong>
+                            <button class="btn btn-xs btn-ghost deleteModuleBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" title="Excluir Módulo">✕</button>
+                        </div>
+                        <ul class="list-none pl-2 mt-1">${modificationsHTML}</ul>
+                        <div class="join w-full mt-2">
+                            <input type="text" class="input input-sm input-bordered join-item w-full newModificationInput" placeholder="Item modificado">
+                            <button class="btn btn-sm join-item addModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}">Adicionar</button>
+                        </div>
+                    </div>`;
             });
+            appDiv.innerHTML = `
+                <input type="radio" name="app-accordion" checked="checked" /> 
+                <div class="collapse-title text-md font-medium flex justify-between items-center">
+                    Aplicação: ${app.name}
+                    <button class="btn btn-xs btn-ghost deleteAppBtn" data-app-index="${appIndex}" title="Excluir Aplicação">✕</button>
+                </div>
+                <div class="collapse-content">
+                    <div class="modulesContainer">${modulesHTML}</div>
+                    <div class="join w-full mt-3">
+                        <input type="text" class="input input-sm input-bordered join-item w-full newModuleNameInput" placeholder="Nome do Novo Módulo">
+                        <button class="btn btn-sm join-item addModuleBtn" data-app-index="${appIndex}">Adicionar Módulo</button>
+                    </div>
+                </div>
+            `;
+            applicationsContainer.appendChild(appDiv);
         });
         updateLogPreview();
     }
+    // --- FIM DA ALTERAÇÃO ---
+
     function updateLogPreview() {
         let logText = "Development Log:\n";
         const indentUnit = "  ";
@@ -97,34 +134,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Funções da UI Principal ---
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // A lógica foi atualizada para usar os componentes e classes da daisyUI
     function renderWorkLogs(logs) {
         workLogHistoryContainer.innerHTML = '';
         if (!logs || logs.length === 0) {
-            workLogHistoryContainer.innerHTML = '<p>Nenhum registro de trabalho encontrado para esta tarefa.</p>';
+            workLogHistoryContainer.innerHTML = '<p class="text-sm text-base-content/70">Nenhum registro de trabalho encontrado para esta tarefa.</p>';
             return;
         }
 
         logs.forEach(log => {
             const entryDiv = document.createElement('div');
-            entryDiv.className = 'log-entry';
+            entryDiv.className = 'p-4 bg-base-200 rounded-lg'; // Usando cores do tema
 
             const logDate = new Date(log.log_date);
             const userTimezoneOffset = logDate.getTimezoneOffset() * 60000;
             const localDate = new Date(logDate.getTime() + userTimezoneOffset);
-            const formattedDate = localDate.toLocaleDateString('pt-BR', {
-                day: '2-digit', month: '2-digit', year: 'numeric'
-            });
+            const formattedDate = localDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
             
             entryDiv.innerHTML = `
-                <div class="log-entry-header">
-                    <span class="log-entry-date">Data: ${formattedDate}</span>
-                    <span class="log-entry-hours">${log.hours_worked} horas</span>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-bold text-sm">Data: ${formattedDate}</span>
+                    <div class="badge badge-neutral">${log.hours_worked} horas</div>
                 </div>
-                <pre class="log-entry-docs">${log.documentation || 'Nenhuma documentação fornecida.'}</pre>
+                <pre class="bg-base-300 p-3 rounded-md text-xs whitespace-pre-wrap font-mono">${log.documentation || 'Nenhuma documentação fornecida.'}</pre>
             `;
             workLogHistoryContainer.appendChild(entryDiv);
         });
     }
+    // --- FIM DA ALTERAÇÃO ---
 
     function setFormState(isEditing) {
         companySelect.disabled = !isEditing;
@@ -140,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTaskId = null;
         
         companySelect.value = '';
-        projectSelect.innerHTML = '<option value="">-- Selecione um Projeto --</option>';
+        projectSelect.innerHTML = '<option value="" disabled selected>-- Selecione um Projeto --</option>'; // Restaurado o valor padrão
         taskTitleInput.value = '';
         taskUrlInput.value = '';
         
@@ -155,7 +193,10 @@ document.addEventListener('DOMContentLoaded', () => {
         workLogHistorySection.style.display = 'none';
         workLogHistoryContainer.innerHTML = '';
 
-        document.querySelectorAll('.task-item.selected').forEach(item => item.classList.remove('selected'));
+        // --- INÍCIO DA ALTERAÇÃO ---
+        // Remove a classe `active` que a daisyUI usa para destacar itens.
+        document.querySelectorAll('.task-item.active').forEach(item => item.classList.remove('active'));
+        // --- FIM DA ALTERAÇÃO ---
         applicationsData = [];
         renderApplications();
     }
@@ -183,9 +224,14 @@ document.addEventListener('DOMContentLoaded', () => {
         workLogSection.style.display = 'block';
         logDateInput.valueAsDate = new Date();
 
+        // --- INÍCIO DA ALTERAÇÃO ---
+        // A lógica de seleção agora usa a classe `active` da daisyUI
         document.querySelectorAll('.task-item').forEach(item => {
-            item.classList.toggle('selected', parseInt(item.dataset.taskId) === taskId);
+            item.classList.remove('active');
         });
+        document.querySelector(`.task-item[data-task-id='${taskId}']`)?.classList.add('active');
+        // --- FIM DA ALTERAÇÃO ---
+        
         applicationsData = [];
         renderApplications();
 
@@ -204,18 +250,27 @@ document.addEventListener('DOMContentLoaded', () => {
             tasksListContainer.innerHTML = '';
             loadedTasks = await window.api.taskHub.getTasks();
             if (loadedTasks.length === 0) {
-                tasksListContainer.innerHTML = '<p>Nenhuma tarefa recente encontrada.</p>';
+                tasksListContainer.innerHTML = '<p class="text-sm text-base-content/70">Nenhuma tarefa recente encontrada.</p>';
                 return;
             }
             loadedTasks.forEach(task => {
-                const item = document.createElement('div');
-                item.className = 'task-item';
+                // --- INÍCIO DA ALTERAÇÃO ---
+                // A criação do item agora é um link `<a>` com classes da daisyUI
+                const item = document.createElement('a');
+                item.className = 'task-item btn btn-ghost justify-between w-full h-auto py-2 normal-case';
                 item.dataset.taskId = task.id;
                 const companyName = task.company_name || 'N/A';
                 const projectName = task.project_name || 'N/A';
-                item.innerHTML = `<span class="task-item-title">${task.title}</span><span class="task-item-project">${projectName} / ${companyName}</span>`;
-                item.addEventListener('click', () => loadTaskIntoForm(task.id));
+                item.innerHTML = `
+                    <span class="task-item-title text-left font-normal">${task.title}</span>
+                    <span class="task-item-project badge badge-outline badge-sm">${projectName} / ${companyName}</span>
+                `;
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadTaskIntoForm(task.id);
+                });
                 tasksListContainer.appendChild(item);
+                // --- FIM DA ALTERAÇÃO ---
             });
         } catch (error) {
             console.error("Erro ao carregar tarefas:", error);
@@ -226,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadCompanies() {
         try {
             const currentVal = companySelect.value;
-            companySelect.length = 1; 
+            companySelect.innerHTML = '<option value="" disabled selected>-- Selecione uma Empresa --</option>';
             const companies = await window.api.taskHub.getCompanies();
             companies.forEach(company => {
                 const option = new Option(company.name, company.id);
@@ -241,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProjects(companyId) {
         try {
             const currentVal = projectSelect.value;
-            projectSelect.length = 1;
+            projectSelect.innerHTML = '<option value="" disabled selected>-- Selecione um Projeto --</option>';
             projectSelect.disabled = true;
             addProjectBtn.disabled = true;
             if (companyId) {
@@ -259,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Lógica de Eventos ---
+    // --- Lógica de Eventos (maioria sem alterações, pois se baseia em IDs) ---
     newTaskBtn.addEventListener('click', resetTaskForm);
     companySelect.addEventListener('change', () => loadProjects(companySelect.value));
     addCompanyBtn.addEventListener('click', () => { newCompanyForm.classList.remove('hidden'); newCompanyNameInput.focus(); });
@@ -306,18 +361,16 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast("Título da tarefa e Projeto são obrigatórios!", 'error');
             return;
         }
-
         try {
             if (!currentTaskId) {
                 const newTaskId = await window.api.taskHub.addTask(taskData);
-                showToast(`Tarefa "${taskData.title}" criada com sucesso!`);
+                showToast(`Tarefa "${taskData.title}" criada com sucesso!`, 'success');
                 await loadAllTasks();
                 loadTaskIntoForm(newTaskId);
             } else {
                 taskData.id = currentTaskId; 
                 await window.api.taskHub.updateTask(taskData);
-                showToast(`Tarefa "${taskData.title}" atualizada com sucesso!`);
-                
+                showToast(`Tarefa "${taskData.title}" atualizada com sucesso!`, 'success');
                 await loadAllTasks();
                 loadTaskIntoForm(currentTaskId);
             }
@@ -329,7 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
     editTaskBtn.addEventListener('click', () => {
         taskFormTitle.textContent = `Editando: ${taskTitleInput.value}`;
         setFormState(true); 
-        
         saveTaskBtn.textContent = 'Salvar Alterações';
         saveTaskBtn.style.display = 'inline-block';
         editTaskBtn.style.display = 'none';
@@ -338,12 +390,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     deleteTaskBtn.addEventListener('click', async () => {
         if (!currentTaskId) return;
-
         if (confirm(`Tem certeza que deseja excluir a tarefa "${taskTitleInput.value}"? Esta ação não pode ser desfeita.`)) {
             try {
                 await window.api.taskHub.deleteTask(currentTaskId);
-                showToast("Tarefa excluída com sucesso!");
-                
+                showToast("Tarefa excluída com sucesso!", 'success');
                 resetTaskForm();
                 await loadAllTasks();
             } catch (error) {
@@ -365,28 +415,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     applicationsContainer.addEventListener('click', (event) => {
-        const target = event.target;
+        const target = event.target.closest('button');
+        if (!target) return;
+
         const appIndex = parseInt(target.dataset.appIndex);
         const modIndex = parseInt(target.dataset.modIndex);
         const itemIndex = parseInt(target.dataset.itemIndex);
+
         if (target.classList.contains('addModuleBtn')) {
             const moduleNameInput = target.previousElementSibling;
             const moduleName = moduleNameInput.value.trim();
             if (moduleName) {
                 applicationsData[appIndex].modules.push({ name: moduleName, modifications: [] });
                 renderApplications();
-            } else {
-                showToast("O nome do Módulo é obrigatório.", 'error');
-            }
+            } else { showToast("O nome do Módulo é obrigatório.", 'error'); }
         } else if (target.classList.contains('addModificationBtn')) {
             const modificationInput = target.previousElementSibling;
             const modificationText = modificationInput.value.trim();
             if (modificationText) {
                 applicationsData[appIndex].modules[modIndex].modifications.push({ text: modificationText });
                 renderApplications();
-            } else {
-                showToast("A descrição da modificação é obrigatória.", 'error');
-            }
+            } else { showToast("A descrição da modificação é obrigatória.", 'error'); }
         } else if (target.classList.contains('deleteAppBtn')) {
             applicationsData.splice(appIndex, 1);
             renderApplications();
@@ -416,11 +465,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             await window.api.taskHub.addWorkLog(logData);
-            showToast("Registro de trabalho salvo com sucesso!");
+            showToast("Registro de trabalho salvo com sucesso!", 'success');
             applicationsData = [];
             renderApplications();
             logHoursInput.value = '';
-
             const updatedLogs = await window.api.taskHub.getWorkLogs(currentTaskId);
             renderWorkLogs(updatedLogs);
         } catch (error) {

@@ -1,121 +1,136 @@
-<!-- /plugins/task/task.html (VERSÃO FINAL E COMPLETA) -->
+<!-- /plugins/task/task.html (VERSÃO REATORADA COM TAILWIND + DAISYUI) -->
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="night">
 <head>
     <meta charset="UTF-8">
     <title>Central de Tarefas</title>
-    <link rel="stylesheet" href="task.css">
+    <!-- O CSS agora vem do arquivo principal compilado pelo Tailwind -->
+    <link rel="stylesheet" href="../../src/renderer/styles/main.css">
 </head>
-<body>
-    <!-- Container para as notificações -->
-    <div id="toast-container"></div>
+<body class="p-4 bg-base-200">
+    <!-- Container para as notificações (Toast) -->
+    <div id="toast-container" class="toast toast-top toast-end"></div>
 
-    <div class="container">
-        <h1>Central de Tarefas</h1>
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <h1 class="text-3xl font-bold text-center text-primary">Central de Tarefas</h1>
 
         <!-- Seção de Listagem de Tarefas Recentes -->
-        <div class="section" id="recent-tasks-section">
-            <div class="section-header">
-                <h2>Tarefas Recentes</h2>
-                <button id="new-task-btn">Nova Tarefa</button>
-            </div>
-            <div id="tasks-list-container">
-                <!-- A lista de tarefas será inserida aqui pelo JS -->
-                <p>Carregando tarefas...</p>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="card-title flex justify-between items-center">
+                    <h2>Tarefas Recentes</h2>
+                    <button id="new-task-btn" class="btn btn-primary btn-sm">Nova Tarefa</button>
+                </div>
+                <div id="tasks-list-container" class="space-y-2 max-h-48 overflow-y-auto p-1">
+                    <p>Carregando tarefas...</p>
+                </div>
             </div>
         </div>
 
         <!-- Seção 1: Dados da Tarefa -->
-        <div class="section" id="task-selection-section">
-            <h2 id="task-form-title">Nova Tarefa</h2> <!-- Título dinâmico -->
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="company-select">Empresa:</label>
-                    <div class="select-wrapper">
-                        <select id="company-select">
-                            <option value="">-- Selecione uma Empresa --</option>
-                        </select>
-                        <button id="add-company-btn" title="Nova Empresa">+</button>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 id="task-form-title" class="card-title">Nova Tarefa</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    
+                    <!-- Empresa -->
+                    <label class="form-control w-full">
+                        <div class="label"><span class="label-text">Empresa:</span></div>
+                        <div class="join w-full">
+                            <select id="company-select" class="select select-bordered join-item w-full">
+                                <option value="" disabled selected>-- Selecione uma Empresa --</option>
+                            </select>
+                            <button id="add-company-btn" class="btn join-item" title="Nova Empresa">+</button>
+                        </div>
+                    </label>
+                    <div id="new-company-form" class="hidden form-control w-full md:col-span-2">
+                        <div class="label"><span class="label-text">Nome da Nova Empresa:</span></div>
+                        <div class="join w-full">
+                            <input type="text" id="new-company-name" placeholder="Nome da Empresa" class="input input-bordered join-item w-full">
+                            <button id="save-new-company-btn" class="btn btn-success join-item">Salvar</button>
+                            <button id="cancel-new-company-btn" class="btn btn-error join-item">X</button>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group add-new-form hidden" id="new-company-form">
-                    <label for="new-company-name">Nome da Nova Empresa:</label>
-                    <div class="input-actions-wrapper">
-                        <input type="text" id="new-company-name" placeholder="Nome da Empresa">
-                        <button id="save-new-company-btn" class="save-btn">Salvar</button>
-                        <button id="cancel-new-company-btn" class="cancel-btn">X</button>
+
+                    <!-- Projeto -->
+                    <label class="form-control w-full">
+                        <div class="label"><span class="label-text">Projeto:</span></div>
+                        <div class="join w-full">
+                            <select id="project-select" class="select select-bordered join-item w-full" disabled>
+                                <option value="" disabled selected>-- Selecione um Projeto --</option>
+                            </select>
+                            <button id="add-project-btn" class="btn join-item" title="Novo Projeto" disabled>+</button>
+                        </div>
+                    </label>
+                    <div id="new-project-form" class="hidden form-control w-full md:col-span-2">
+                        <div class="label"><span class="label-text">Nome do Novo Projeto:</span></div>
+                        <div class="join w-full">
+                            <input type="text" id="new-project-name" placeholder="Nome do Projeto" class="input input-bordered join-item w-full">
+                            <button id="save-new-project-btn" class="btn btn-success join-item">Salvar</button>
+                            <button id="cancel-new-project-btn" class="btn btn-error join-item">X</button>
+                        </div>
                     </div>
+                    
+                    <!-- Título da Tarefa e URL -->
+                    <label class="form-control w-full md:col-span-2">
+                        <div class="label"><span class="label-text">Título da Tarefa:</span></div>
+                        <input type="text" id="task-title" placeholder="Ex: Integrar nova API de pagamentos" class="input input-bordered w-full">
+                    </label>
+                    <label class="form-control w-full md:col-span-2">
+                        <div class="label"><span class="label-text">URL do ClickUp:</span></div>
+                        <input type="url" id="task-url" placeholder="https://app.clickup.com/t/..." class="input input-bordered w-full">
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label for="project-select">Projeto:</label>
-                    <div class="select-wrapper">
-                        <select id="project-select" disabled>
-                            <option value="">-- Selecione um Projeto --</option>
-                        </select>
-                        <button id="add-project-btn" title="Novo Projeto" disabled>+</button>
-                    </div>
+
+                <div class="card-actions justify-end mt-6" id="task-form-actions">
+                    <button id="delete-task-btn" class="btn btn-error" style="display: none;">Excluir</button>
+                    <button id="edit-task-btn" class="btn" style="display: none;">Editar Tarefa</button>
+                    <button id="save-task-btn" class="btn btn-primary">Criar Tarefa</button>
                 </div>
-                <div class="form-group add-new-form hidden" id="new-project-form">
-                    <label for="new-project-name">Nome do Novo Projeto:</label>
-                    <div class="input-actions-wrapper">
-                        <input type="text" id="new-project-name" placeholder="Nome do Projeto">
-                        <button id="save-new-project-btn" class="save-btn">Salvar</button>
-                        <button id="cancel-new-project-btn" class="cancel-btn">X</button>
-                    </div>
-                </div>
-                <div class="form-group span-2">
-                    <label for="task-title">Título da Tarefa:</label>
-                    <input type="text" id="task-title" placeholder="Ex: Integrar nova API de pagamentos">
-                </div>
-                <div class="form-group span-2">
-                    <label for="task-url">URL do ClickUp:</label>
-                    <input type="url" id="task-url" placeholder="https://app.clickup.com/t/...">
-                </div>
-            </div>
-            <div class="action-buttons" id="task-form-actions">
-                <button id="delete-task-btn" class="cancel-btn" style="display: none;">Excluir</button>
-                <button id="edit-task-btn" style="display: none;">Editar Tarefa</button>
-                <button id="save-task-btn" class="primary-btn">Criar Tarefa</button>
             </div>
         </div>
 
-        <hr>
+        <div class="divider"></div>
 
         <!-- Seção 2: Registro de Trabalho -->
-        <div class="section" id="work-log-section" style="display: none;">
-            <h2>Registro de Trabalho do Dia</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="log-date">Data:</label>
-                    <input type="date" id="log-date">
+        <div id="work-log-section" class="card bg-base-100 shadow-xl" style="display: none;">
+            <div class="card-body">
+                <h2 class="card-title">Registro de Trabalho do Dia</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <label class="form-control w-full">
+                        <div class="label"><span class="label-text">Data:</span></div>
+                        <input type="date" id="log-date" class="input input-bordered w-full">
+                    </label>
+                    <label class="form-control w-full">
+                        <div class="label"><span class="label-text">Horas Trabalhadas:</span></div>
+                        <input type="text" id="log-hours" placeholder="Ex: 2.5" class="input input-bordered w-full">
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label for="log-hours">Horas Trabalhadas:</label>
-                    <input type="text" id="log-hours" placeholder="Ex: 2.5">
+                <div id="log-generator" class="mt-4 space-y-4">
+                    <h3 class="font-bold">Documentação</h3>
+                    <div id="applicationsContainer" class="space-y-2"></div>
+                    <div class="join w-full">
+                      <input type="text" id="newAppName" placeholder="Nome da Aplicação" class="input input-bordered join-item w-full">
+                      <button id="submitNewApplicationBtn" class="btn join-item">Adicionar Aplicação</button>
+                    </div>
+                    <textarea id="logOutput" rows="8" readonly placeholder="Preview do Log gerado..." class="textarea textarea-bordered w-full font-mono text-sm"></textarea>
                 </div>
-            </div>
-            <div id="log-generator">
-                <h3>Documentação</h3>
-                <div id="applicationsContainer">
+                <div class="card-actions justify-end mt-6">
+                    <button id="save-log-db-btn" class="btn btn-success">Salvar Registro no Banco</button>
+                    <button id="sync-clickup-btn" class="btn" disabled>Enviar p/ ClickUp</button>
+                    <button id="sync-clockify-btn" class="btn" disabled>Enviar p/ Clockify</button>
                 </div>
-                <div class="add-item-form">
-                  <input type="text" id="newAppName" placeholder="Nome da Aplicação">
-                  <button id="submitNewApplicationBtn">Adicionar Aplicação</button>
-                </div>
-                <textarea id="logOutput" rows="10" readonly placeholder="Preview do Log gerado..."></textarea>
-            </div>
-            <div class="action-buttons">
-                <button id="save-log-db-btn">Salvar Registro no Banco</button>
-                <button id="sync-clickup-btn" disabled>Enviar p/ ClickUp</button>
-                <button id="sync-clockify-btn" disabled>Enviar p/ Clockify</button>
             </div>
         </div>
 
-        <!-- NOVA SEÇÃO: Histórico de Logs -->
-        <div class="section" id="work-log-history-section" style="display: none;">
-            <h2>Histórico de Logs para esta Tarefa</h2>
-            <div id="work-log-history-container">
-                <!-- Logs salvos serão inseridos aqui pelo JS -->
+        <!-- Seção: Histórico de Logs -->
+        <div id="work-log-history-section" class="card bg-base-100 shadow-xl" style="display: none;">
+            <div class="card-body">
+                <h2 class="card-title">Histórico de Logs para esta Tarefa</h2>
+                <div id="work-log-history-container" class="mt-4 max-h-64 overflow-y-auto space-y-3 p-1">
+                    <!-- Logs salvos serão inseridos aqui -->
+                </div>
             </div>
         </div>
 

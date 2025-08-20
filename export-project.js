@@ -9,7 +9,7 @@ let output = "";
 // =======================
 // CONFIGURAÇÕES DE IGNORE
 // =======================
-const ignoreDirs = ["node_modules", ".git", "dist", "build", "out","release"];
+const ignoreDirs = [ "node_modules", ".git", "dist", "build", "out","release"];
 const ignoreFiles = ["package-lock.json", "yarn.lock"];
 
 // Extensões de arquivos de texto que vamos incluir

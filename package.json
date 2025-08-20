@@ -5,18 +5,14 @@
   "main": "src/main/main.js",
   "author": "Seu Nome <email@example.com>",
   "license": "ISC",
-  "scripts": {
-    "start": "electron . --inspect=9222",
-    "test": "vitest",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
-  },
-  "keywords": [
-    "assistente",
-    "ia",
-    "produtividade",
-    "electron"
-  ],
+"scripts": {
+  "start": "npm run build:css && electron . --inspect=9222",
+  "build:css": "npx tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/main.css --minify",
+  "watch:css": "npx tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/main.css --watch",
+  "test": "vitest",
+  "pack": "electron-builder --dir",
+  "dist": "electron-builder"
+},
   "dependencies": {
     "@google/generative-ai": "^0.1.3",
     "chromadb": "^3.0.10",
@@ -31,38 +27,13 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "daisyui": "^4.12.10",
     "electron": "^27.0.4",
     "electron-builder": "^26.0.12",
     "jsdom": "^26.1.0",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
     "vitest": "^3.2.4"
-  },
-  "build": {
-    "appId": "com.seuusuario.assistente-virtual",
-    "productName": "Assistente Virtual",
-    "files": [
-      "**/*",
-      "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!node_modules/*.d.ts",
-      "!node_modules/.bin",
-      "!**/*.{o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,test-db,test.sqlite3}",
-      "!**/*.{iml,iws,ipr,project,psd,xcodeproj,xcworkspace}"
-    ],
-    "directories": {
-      "output": "release"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "mac": {
-      "target": "dmg"
-    },
-    "linux": {
-      "target": "AppImage"
-    }
   }
 }
