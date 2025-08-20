@@ -295,6 +295,13 @@ ipcMain.handle('task:get-work-logs', async (event, taskId) => {
     return await dbManager.taskHub.workLogs.getForTask(taskId);
 });
 
+// --- INÍCIO DA ALTERAÇÃO ---
+// --- Handlers para o Dashboard G.A.I.A. ---
+ipcMain.handle('gaia:get-games', async () => {
+    return await dbManager.hobbie.listGames();
+});
+// --- FIM DA ALTERAÇÃO ---
+
 // --- Handlers para o AI MANAGER ---
 ipcMain.handle('ai:get-models', () => {
     return aiManager.getAvailableModels();

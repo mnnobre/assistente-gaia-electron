@@ -49,6 +49,13 @@ contextBridge.exposeInMainWorld('api', {
         getWorkLogs: (taskId) => ipcRenderer.invoke('task:get-work-logs', taskId),
     },
 
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // --- Módulo G.A.I.A. (para o Dashboard) ---
+    gaia: {
+        getGames: () => ipcRenderer.invoke('gaia:get-games'),
+    },
+    // --- FIM DA ALTERAÇÃO ---
+
     // --- Função genérica para ENVIAR mensagens One-Way (Apenas envia) ---
     send: (channel, data) => {
         const validChannels = [
@@ -85,7 +92,7 @@ contextBridge.exposeInMainWorld('api', {
             'context:attachment-deleted',
             'context:do-recapture',
             'scribe:live-update',
-            'scribe:analysis-result' // <-- ADICIONADO
+            'scribe:analysis-result'
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.removeAllListeners(channel);

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <title>G.A.I.A. - Dashboard de Lazer</title>
+    <!-- Usa o mesmo arquivo CSS compilado pelo Tailwind -->
+    <link rel="stylesheet" href="../../src/renderer/styles/main.css">
+</head>
+<body class="bg-base-200">
+
+    <div class="container mx-auto p-8 space-y-8">
+        
+        <header class="text-center">
+            <h1 class="text-4xl font-bold text-primary">Dashboard de Lazer</h1>
+            <p class="text-lg text-base-content/70 mt-2">Seu espaço para relaxar e redescobrir seus jogos.</p>
+        </header>
+
+        <!-- Seção da Estante de Jogos -->
+        <section id="game-shelf-section">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-primary/50 pb-2">📚 Sua Estante de Jogos</h2>
+            
+            <!-- O container onde os cards dos jogos serão inseridos pelo JS -->
+            <div id="game-shelf-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                
+                <!-- Placeholder de Carregamento -->
+                <div id="loading-placeholder" class="col-span-full text-center p-10">
+                    <span class="loading loading-lg loading-spinner text-primary"></span>
+                    <p class="mt-4">Carregando sua coleção de jogos...</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Futuras seções, como Histórico de Atividades, podem vir aqui -->
+        
+    </div>
+
+    <!-- O script que vai popular a interface com dados -->
+    <script src="dashboard-renderer.js"></script>
+</body>
+</html>
