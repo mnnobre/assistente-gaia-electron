@@ -1,4 +1,4 @@
-// /modules/database-manager.js (VERSÃO CORRIGIDA)
+// /modules/database-manager.js
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 const path = require("path");
@@ -46,6 +46,13 @@ async function initializeDatabase(app) {
                 mood_rating INTEGER CHECK(mood_rating >= 1 AND mood_rating <= 5),
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS pinned_commands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ai_model_key TEXT NOT NULL,
+                command_string TEXT NOT NULL,
+                UNIQUE(ai_model_key, command_string)
             );
 
             CREATE TABLE IF NOT EXISTS notes (
@@ -146,6 +153,14 @@ async function initializeDatabase(app) {
             );
         `);
     
+    // --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
+    // Adiciona a coluna 'status' à tabela de jogos, se ela não existir.
+    const gamesTableInfo = await db.all("PRAGMA table_info(games)");
+    if (!gamesTableInfo.some(col => col.name === 'status')) {
+        await db.exec("ALTER TABLE games ADD COLUMN status TEXT NOT NULL DEFAULT 'Na Estante'");
+    }
+    // --- FIM DA ALTERAÇÃO ---
+    
     const meetingsInfo = await db.all("PRAGMA table_info(meetings)");
     if (!meetingsInfo.some(col => col.name === 'full_audio_me')) {
         await db.exec("ALTER TABLE meetings ADD COLUMN full_audio_me BLOB");
@@ -173,15 +188,12 @@ async function setSetting(key, value) {
 }
 
 // --- FUNÇÕES DO MÓDULO HOBBIE / G.A.I.A. ---
-
 async function addGame(title, platform, tags = []) {
     if (!db) throw new Error("Banco de dados não inicializado.");
-    
     await db.exec('BEGIN TRANSACTION');
     try {
         const gameResult = await db.run("INSERT INTO games (title, platform) VALUES (?, ?)", [title, platform]);
         const gameId = gameResult.lastID;
-
         for (const tagName of tags) {
             const normalizedTag = tagName.trim().toLowerCase();
             await db.run("INSERT OR IGNORE INTO tags (name) VALUES (?)", [normalizedTag]);
@@ -206,6 +218,7 @@ async function listGames() {
             g.id,
             g.title,
             g.platform,
+            g.status, -- Adicionado o status à listagem
             GROUP_CONCAT(t.name, ', ') AS tags
         FROM games g
         LEFT JOIN game_tags gt ON g.id = gt.game_id
@@ -245,11 +258,6 @@ async function findGamesByTags(tagNames = []) {
     return await db.all(query, normalizedTags);
 }
 
-/**
- * Busca um único jogo pelo seu título exato (case-insensitive).
- * @param {string} title - O título do jogo a ser encontrado.
- * @returns {Promise<object|undefined>} O objeto do jogo se encontrado, senão undefined.
- */
 async function findGameByTitle(title) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     return await db.get("SELECT * FROM games WHERE LOWER(title) = LOWER(?)", [title.trim()]);
@@ -264,6 +272,60 @@ async function addGameLog(gameId, logText, moodRating = null) {
     return result.lastID;
 }
 
+// --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
+/**
+ * Atualiza o status de um jogo específico.
+ * @param {string} gameTitle - O título do jogo a ser atualizado.
+ * @param {string} newStatus - O novo status para o jogo.
+ * @returns {Promise<number>} O número de linhas afetadas.
+ */
+async function updateGameStatus(gameTitle, newStatus) {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    const result = await db.run(
+        "UPDATE games SET status = ? WHERE LOWER(title) = LOWER(?)",
+        [newStatus, gameTitle.trim()]
+    );
+    return result.changes;
+}
+
+/**
+ * Busca todos os jogos com o status 'Jogando Atualmente'.
+ * @returns {Promise<object[]>} Um array com os objetos dos jogos ativos.
+ */
+async function getActiveGames() {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    return await db.all("SELECT * FROM games WHERE status = 'Jogando Atualmente'");
+}
+// --- FIM DA ALTERAÇÃO ---
+
+// --- FUNÇÕES DO HUB DE COMANDOS ---
+async function getPinnedCommands(aiModelKey) {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    const results = await db.all("SELECT command_string FROM pinned_commands WHERE ai_model_key = ?", [aiModelKey]);
+    return results.map(row => row.command_string);
+}
+
+async function setPinnedCommands(aiModelKey, commandsArray = []) {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    await db.exec('BEGIN TRANSACTION');
+    try {
+        await db.run("DELETE FROM pinned_commands WHERE ai_model_key = ?", [aiModelKey]);
+        if (commandsArray.length > 0) {
+            const stmt = await db.prepare("INSERT INTO pinned_commands (ai_model_key, command_string) VALUES (?, ?)");
+            for (const commandString of commandsArray) {
+                await stmt.run(aiModelKey, commandString);
+            }
+            await stmt.finalize();
+        }
+        await db.exec('COMMIT');
+    } catch (error) {
+        await db.exec('ROLLBACK');
+        console.error("[Database] Erro ao salvar comandos fixados:", error);
+        throw error;
+    }
+}
+
+// ... (resto do arquivo sem alterações)
 async function addNote(content) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   await db.run("INSERT INTO notes (content) VALUES (?)", [content]);
@@ -281,7 +343,6 @@ async function deleteNoteById(id) {
   const result = await db.run("DELETE FROM notes WHERE id = ?", [id]);
   return result.changes;
 }
-
 async function createMeeting(title) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   const result = await db.run("INSERT INTO meetings (title) VALUES (?)", [
@@ -289,14 +350,12 @@ async function createMeeting(title) {
   ]);
   return result.lastID;
 }
-
 async function updateMeetingFullAudio(meetingId, speaker, audioBuffer) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const columnName = speaker === 'me' ? 'full_audio_me' : 'full_audio_other';
     const sql = `UPDATE meetings SET ${columnName} = ? WHERE id = ?`;
     await db.run(sql, [audioBuffer, meetingId]);
 }
-
 async function addTranscript(meeting_id, speaker, text, audioBuffer) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   await db.run(
@@ -304,7 +363,6 @@ async function addTranscript(meeting_id, speaker, text, audioBuffer) {
     [meeting_id, speaker, text, audioBuffer]
   );
 }
-
 async function addScribeAnalysis(meetingId, context, question, answer) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     await db.run(
@@ -312,7 +370,6 @@ async function addScribeAnalysis(meetingId, context, question, answer) {
         [meetingId, context, question, answer]
     );
 }
-
 async function getScribeAnalysesForMeeting(meetingId) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     return await db.all(
@@ -320,19 +377,16 @@ async function getScribeAnalysesForMeeting(meetingId) {
         [meetingId]
     );
 }
-
 async function listMeetings() {
   if (!db) throw new Error("Banco de dados não inicializado.");
   return await db.all(
     "SELECT id, title, created_at FROM meetings ORDER BY created_at DESC"
   );
 }
-
 async function getMeetingById(id) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   return await db.get("SELECT id, title, created_at, full_audio_me, full_audio_other FROM meetings WHERE id = ?", [id]);
 }
-
 async function getTranscriptsForMeeting(meeting_id) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   return await db.all(
@@ -349,7 +403,6 @@ async function clearAllMeetings() {
   if (!db) throw new Error("Banco de dados não inicializado.");
   await db.run("DELETE FROM meetings");
 }
-
 async function addChatMessage(sender, content, is_html = 0) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   await db.run(
@@ -357,7 +410,6 @@ async function addChatMessage(sender, content, is_html = 0) {
     [sender, content, is_html]
   );
 }
-
 async function addTodo(task) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   const result = await db.run("INSERT INTO todos (task) VALUES (?)", [task]);
@@ -382,7 +434,6 @@ async function deleteTodo(id) {
   const result = await db.run("DELETE FROM todos WHERE id = ?", [id]);
   return result.changes;
 }
-
 async function addMemoryTurn(userPrompt, modelResponse) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const today = new Date().toISOString().split('T')[0];
@@ -428,7 +479,6 @@ async function getPinnedTurns() {
     if (!db) throw new Error("Banco de dados não inicializado.");
     return await db.all("SELECT * FROM memory_turns WHERE is_pinned = 1 ORDER BY timestamp DESC");
 }
-
 async function addCompany(name) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const result = await db.run("INSERT INTO companies (name) VALUES (?)", [name]);
@@ -438,7 +488,6 @@ async function listCompanies() {
     if (!db) throw new Error("Banco de dados não inicializado.");
     return await db.all("SELECT * FROM companies ORDER BY name ASC");
 }
-
 async function addProject(name, company_id) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const result = await db.run("INSERT INTO projects (name, company_id) VALUES (?, ?)", [name, company_id]);
@@ -448,7 +497,6 @@ async function listProjectsByCompany(company_id) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     return await db.all("SELECT * FROM projects WHERE company_id = ? ORDER BY name ASC", [company_id]);
 }
-
 async function addTask(title, clickup_url, project_id) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const result = await db.run("INSERT INTO tasks (title, clickup_url, project_id) VALUES (?, ?, ?)", [title, clickup_url, project_id]);
@@ -481,7 +529,6 @@ async function deleteTask(taskId) {
     const result = await db.run("DELETE FROM tasks WHERE id = ?", [taskId]);
     return result.changes;
 }
-
 async function addWorkLog(task_id, documentation, hours_worked, log_date) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     await db.run(
@@ -508,8 +555,16 @@ module.exports = {
       listGames,
       findGamesByTag,
       findGamesByTags,
-      findGameByTitle, // <-- CORREÇÃO AQUI
+      findGameByTitle,
       addGameLog,
+      // --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
+      updateGameStatus,
+      getActiveGames,
+      // --- FIM DA ALTERAÇÃO ---
+  },
+  commands: {
+      getPinned: getPinnedCommands,
+      setPinned: setPinnedCommands,
   },
   notes: { add: addNote, list: listNotes, clear: clearNotes, delete: deleteNoteById },
   scribe: { 
