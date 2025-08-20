@@ -49,10 +49,16 @@ contextBridge.exposeInMainWorld('api', {
         getWorkLogs: (taskId) => ipcRenderer.invoke('task:get-work-logs', taskId),
     },
 
-    // --- INÍCIO DA ALTERAÇÃO ---
     // --- Módulo G.A.I.A. (para o Dashboard) ---
     gaia: {
         getGames: () => ipcRenderer.invoke('gaia:get-games'),
+    },
+
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // --- Módulo de Comandos (para o Hub de IA) ---
+    commands: {
+        getPinned: (aiModelKey) => ipcRenderer.invoke('commands:get-pinned', aiModelKey),
+        setPinned: (aiModelKey, commandsArray) => ipcRenderer.invoke('commands:set-pinned', { aiModelKey, commandsArray }),
     },
     // --- FIM DA ALTERAÇÃO ---
 
@@ -99,4 +105,4 @@ contextBridge.exposeInMainWorld('api', {
             ipcRenderer.on(channel, (event, ...args) => callback(...args));
         }
     },
-});
+})

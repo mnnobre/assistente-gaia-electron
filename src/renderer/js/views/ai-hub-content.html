@@ -1,39 +1,35 @@
 <!-- /js/views/ai-hub-content.html -->
 
-<div class="ai-hub-section">
-    <h3>Modelo de IA Ativo</h3>
-    <p>Selecione o modelo principal para conversas.</p>
-    <select id="ai-model-select"></select>
-</div>
+<!-- Estrutura de Abas (Tabs) da daisyUI -->
+<div role="tablist" class="tabs tabs-lifted tabs-lg">
+  
+  <!-- Aba 1: Modelos -->
+  <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Modelos" checked />
+  <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+    
+    <div class="ai-hub-section">
+        <h3 class="text-lg font-semibold">Modelo de IA Ativo</h3>
+        <p class="text-sm text-base-content/70 mt-1">Selecione o modelo principal para conversas.</p>
+        <select id="ai-model-select" class="select select-bordered w-full mt-4"></select>
+    </div>
 
-<!-- Estilos específicos para este conteúdo -->
-<style>
-    .ai-hub-section h3 {
-        margin-top: 0;
-        margin-bottom: 8px;
-        color: var(--text-color);
-        border-bottom: 1px solid var(--secondary-bg);
-        padding-bottom: 8px;
-    }
-    .ai-hub-section p {
-        font-size: 13px;
-        color: #b0b0b0;
-        margin-top: 0;
-        margin-bottom: 15px;
-        line-height: 1.5;
-    }
-    #ai-model-select {
-        width: 100%;
-        padding: 10px;
-        border-radius: 6px;
-        border: 1px solid var(--secondary-bg);
-        background-color: #3c4049;
-        color: var(--text-color);
-        font-size: 14px;
-        cursor: pointer;
-    }
-    #ai-model-select:focus {
-        outline: none;
-        border-color: var(--user-bubble-bg);
-    }
-</style>
+  </div>
+
+  <!-- Aba 2: Ações Rápidas -->
+  <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Ações Rápidas" />
+  <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+    
+    <div class="ai-hub-section">
+        <h3 class="text-lg font-semibold">Ações Rápidas</h3>
+        <p class="text-sm text-base-content/70 mt-1">Fixe comandos e subcomandos para acesso rápido na interface principal.</p>
+        
+        <!-- O container para a lista de comandos será preenchido pelo JS -->
+        <div id="commands-list-container" class="mt-4 space-y-2 max-h-64 overflow-y-auto">
+            <!-- Placeholder de carregamento -->
+            <span class="loading loading-spinner"></span> Carregando comandos...
+        </div>
+
+    </div>
+
+  </div>
+</div>

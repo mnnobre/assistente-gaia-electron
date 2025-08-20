@@ -295,10 +295,18 @@ ipcMain.handle('task:get-work-logs', async (event, taskId) => {
     return await dbManager.taskHub.workLogs.getForTask(taskId);
 });
 
-// --- INÍCIO DA ALTERAÇÃO ---
 // --- Handlers para o Dashboard G.A.I.A. ---
 ipcMain.handle('gaia:get-games', async () => {
     return await dbManager.hobbie.listGames();
+});
+
+// --- INÍCIO DA ALTERAÇÃO ---
+// --- Handlers para o Hub de Comandos ---
+ipcMain.handle('commands:get-pinned', async (event, aiModelKey) => {
+    return await dbManager.commands.getPinned(aiModelKey);
+});
+ipcMain.handle('commands:set-pinned', async (event, { aiModelKey, commandsArray }) => {
+    return await dbManager.commands.setPinned(aiModelKey, commandsArray);
 });
 // --- FIM DA ALTERAÇÃO ---
 
@@ -362,8 +370,6 @@ async function processPluginResponse(response) {
         if(response.action === 'suppress_chat_response') {
             return { type: 'final_action', action: 'suppress_chat_response' };
         }
-        // Se for uma ação que TEM uma resposta, como /player show, etc.
-        // A lógica original não lidava com isso bem, então criamos uma resposta padrão
         const actionText = response.payload ? `Ação '${response.action}' com '${response.payload}' executada.` : `Ação '${response.action}' executada.`;
         return { type: 'final_action', html: actionText };
     }
@@ -375,15 +381,12 @@ async function processPluginResponse(response) {
         return { type: 'final_action', action: 'suppress_chat_response' };
     }
 
-    // O "catch-all" para a maioria dos plugins (gaia, hobbie, nota, etc.)
-    // Eles retornam um objeto com `success` e `message`.
     const messageContent = response.message || response.content || "Ocorreu um erro no plugin.";
 
     if (response.success === false) {
         return { type: 'final_action', html: `<strong>Erro:</strong> ${messageContent}` };
     }
 
-    // Se tudo deu certo, formatamos para HTML e enviamos.
     const finalHtml = await aiManager.formatToHtml(messageContent);
     return { type: 'final_action', html: finalHtml };
 }
