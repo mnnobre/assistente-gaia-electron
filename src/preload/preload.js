@@ -54,13 +54,11 @@ contextBridge.exposeInMainWorld('api', {
         getGames: () => ipcRenderer.invoke('gaia:get-games'),
     },
 
-    // --- INÍCIO DA ALTERAÇÃO ---
     // --- Módulo de Comandos (para o Hub de IA) ---
     commands: {
         getPinned: (aiModelKey) => ipcRenderer.invoke('commands:get-pinned', aiModelKey),
         setPinned: (aiModelKey, commandsArray) => ipcRenderer.invoke('commands:set-pinned', { aiModelKey, commandsArray }),
     },
-    // --- FIM DA ALTERAÇÃO ---
 
     // --- Função genérica para ENVIAR mensagens One-Way (Apenas envia) ---
     send: (channel, data) => {
@@ -91,6 +89,9 @@ contextBridge.exposeInMainWorld('api', {
             'list-response',
             'pomodoro-tick',
             'pomodoro-state-changed',
+            // --- INÍCIO DA ALTERAÇÃO ---
+            'pomodoro-show-widget',
+            // --- FIM DA ALTERAÇÃO ---
             'ai-model-changed',
             'ai-chunk',
             'ai-stream-end',

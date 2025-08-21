@@ -1,4 +1,4 @@
-// /plugins/gaia/index.js (VERSÃO FINAL DA FASE 8)
+// /plugins/gaia/index.js
 
 const aiManager = require('../../src/main/modules/ai-manager.js');
 const vectorDBManager = require('../../src/main/modules/vector-db-manager.js');
@@ -71,7 +71,7 @@ module.exports = {
         'pausei': 'Define o status de um jogo como "Pausado".',
         'larguei': 'Define o status de um jogo como "Abandonado".',
         'estante': 'Retorna um jogo para o status padrão "Na Estante".',
-        'timer': 'Inicia um timer de lazer.',
+        'timer': 'Inicia um timer de lazer. Ex: /gaia timer 45 (para 45 minutos)',
         'clear': 'Limpa o estado da conversa atual com a G.A.I.A.',
         'reset': 'APAGA permanentemente todas as memórias e logs da G.A.I.A.'
     },
@@ -80,7 +80,6 @@ module.exports = {
         const subcommand = args[0]?.toLowerCase();
         const userInput = args.join(' ');
 
-        // --- ROTEADOR DE CONVERSA CONTEXTUAL ---
         if (conversationState.expecting === 'mood_for_suggestion') {
             const moodDescription = userInput;
             clearConversation();
@@ -95,17 +94,13 @@ module.exports = {
             }
         }
         
-        // --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
-        // Agora temos dois tipos de contexto de log
         if (conversationState.expecting === 'game_for_log' || conversationState.expecting === 'game_disambiguation_for_log') {
             const gameName = userInput;
             const { logText, mood } = conversationState.data;
             clearConversation();
             return await saveGameLog(gameName, logText, mood);
         }
-        // --- FIM DA ALTERAÇÃO ---
 
-        // --- ROTEADOR DE COMANDOS DIRETOS ---
         const statusCommands = ['jogando', 'zerei', 'pausei', 'larguei', 'estante'];
         const statusMap = { 'jogando': 'Jogando Atualmente', 'zerei': 'Finalizado', 'pausei': 'Pausado', 'larguei': 'Abandonado', 'estante': 'Na Estante' };
         const statusMessages = {
@@ -132,29 +127,35 @@ module.exports = {
                 if (!logText) return { success: true, message: "O que você gostaria de registrar?" };
                 if (mood && (isNaN(mood) || mood < 1 || mood > 5)) return { success: false, message: "O humor precisa ser um número entre 1 e 5." };
                 
-                // Se o usuário especificou um jogo com --jogo, a prioridade é dele.
                 if (gameNameParam) return await saveGameLog(gameNameParam, logText, mood);
                 
-                // --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
-                // Se não, tentamos adivinhar pelo contexto.
                 const activeGames = await dbManager.hobbie.getActiveGames();
 
                 if (activeGames.length === 1) {
-                    // Cenário 2: Um jogo ativo. Assume o contexto e salva direto.
                     return await saveGameLog(activeGames[0].title, logText, mood);
                 } else if (activeGames.length > 1) {
-                    // Cenário 3: Múltiplos jogos ativos. Pede para desambiguar.
                     conversationState.expecting = 'game_disambiguation_for_log';
                     conversationState.data = { logText, mood };
                     const gameTitles = activeGames.map(g => `**${g.title}**`).join(' ou ');
                     return { success: true, message: `Legal! Essa anotação é sobre ${gameTitles}?` };
                 } else {
-                    // Cenário 1: Nenhum jogo ativo. Pergunta qual é.
                     conversationState.expecting = 'game_for_log';
                     conversationState.data = { logText, mood };
                     return { success: true, message: `Legal! Sobre qual jogo é essa anotação?` };
                 }
-                // --- FIM DA ALTERAÇÃO ---
+
+            // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+            case 'timer':
+                const durationArg = args[1];
+                const duration = durationArg ? parseInt(durationArg, 10) : null;
+
+                if (durationArg && (isNaN(duration) || duration <= 0)) {
+                    return { success: false, message: "A duração do timer precisa ser um número positivo de minutos." };
+                }
+
+                // Retorna uma ação para o main.js tratar
+                return { type: 'action', action: 'pomodoro_leisure_start', payload: duration };
+            // --- FIM DA ALTERAÇÃO ---
 
             case 'clear':
                 clearConversation();
@@ -166,7 +167,6 @@ module.exports = {
                 return { success: true, message: "Memória reiniciada." };
 
             default:
-                // --- INÍCIO DA ALTERAÇÃO (CHAT CONTEXTUAL) ---
                 if (!userInput) return { success: true, message: "Olá! Sou a G.A.I.A. Vamos conversar sobre seus jogos?" };
 
                 const activeGamesForChat = await dbManager.hobbie.getActiveGames();
@@ -180,7 +180,6 @@ module.exports = {
                 const gaiaResponse = await aiManager.generateGaiaResponse({ userInput: `${contextMessage}\n\n${userInput}`, memoryContext: memories });
                 await vectorDBManager.addMemory('gaia', `chat-${Date.now()}`, `A conversa foi: ${userInput}. A resposta foi: ${gaiaResponse}`);
                 return { success: true, message: gaiaResponse };
-                // --- FIM DA ALTERAÇÃO ---
         }
     }
 };

@@ -6,13 +6,10 @@
 import * as elements from './elements.js';
 import { store } from './store.js';
 
-// --- FUNÇÃO CORRIGIDA ---
 export function setInputState(isLoading) {
-    // Adicionamos uma verificação de segurança para garantir que os elementos existem.
     if (!elements.messageInput || !elements.sendButton || !elements.inputContainer) {
         return;
     }
-
     if (isLoading) {
         elements.messageInput.disabled = true;
         elements.sendButton.disabled = true;
@@ -20,27 +17,22 @@ export function setInputState(isLoading) {
         addTypingIndicator();
     } else {
         removeTypingIndicator();
-        // A lógica principal de desbloqueio está aqui e agora funcionará corretamente.
         elements.messageInput.disabled = false;
         elements.sendButton.disabled = false;
         elements.inputContainer.classList.remove('loading');
-        // Usamos um pequeno timeout para garantir que o foco seja aplicado após o DOM ser atualizado.
         setTimeout(() => elements.messageInput.focus(), 0);
     }
 }
-// --- FIM DA FUNÇÃO CORRIGIDA ---
 
 export function autoResizeTextarea() {
     if (!elements.messageInput) return;
     elements.messageInput.style.height = 'auto';
     elements.messageInput.style.height = elements.messageInput.scrollHeight + 'px';
-
     if (!elements.inputContainer || !elements.actionsBar || !elements.aiStatusBar || !elements.characterContainer || !elements.autocompleteContainer) return;
     const inputHeight = elements.inputContainer.offsetHeight;
     const actionsBarHeight = elements.actionsBar.offsetHeight;
     const aiBarHeight = elements.aiStatusBar.offsetHeight;
     const totalBarHeight = actionsBarHeight + inputHeight + aiBarHeight;
-
     elements.characterContainer.style.bottom = `${totalBarHeight}px`;
     elements.autocompleteContainer.style.bottom = `${totalBarHeight}px`;
 }
@@ -59,13 +51,10 @@ export function showThumbnail(imageData) {
         return;
     }
     if (!elements.thumbnailContainer || !elements.contextMenuButton) return;
-
     store.getState().attachImage(imageData);
-
     elements.thumbnailContainer.innerHTML = '';
     const img = document.createElement('img');
     img.src = imageData;
-
     const removeBtn = document.createElement('div');
     removeBtn.className = 'remove-thumbnail-btn';
     removeBtn.innerHTML = '&times;';
@@ -73,7 +62,6 @@ export function showThumbnail(imageData) {
         e.stopPropagation();
         removeThumbnail();
     });
-
     elements.thumbnailContainer.appendChild(img);
     elements.thumbnailContainer.appendChild(removeBtn);
     elements.thumbnailContainer.classList.remove('hidden');
@@ -115,14 +103,12 @@ export function updateMiniPlayerUI() {
     if (!elements.miniPlayer) return;
     const { currentPlaybackState, isPlayerManuallyStopped } = store.getState();
     const { getState } = store;
-
     if (isPlayerManuallyStopped) {
         elements.miniPlayer.classList.add("hidden");
         if(document.querySelector('#app-container')) document.querySelector('#app-container').style.bottom = '0px';
         showInputSection();
         return;
     }
-    
     if (currentPlaybackState && currentPlaybackState.title) {
         elements.miniPlayer.classList.remove("hidden");
         if(elements.miniPlayerTitle) elements.miniPlayerTitle.innerHTML = `<span>${currentPlaybackState.title}</span>`;
@@ -140,36 +126,29 @@ export function updateMiniPlayerUI() {
 
 export function addMessageToChat(text, sender, isHtml = false) {
     if (!elements.chatContainer) return null;
-
     const messageDiv = document.createElement("div");
     messageDiv.classList.add("message", sender === "user" ? "user-message" : "assistant-message");
-    
     const contentDiv = document.createElement("div");
     contentDiv.classList.add("message-content");
     messageDiv.appendChild(contentDiv);
-    
     if (isHtml) {
         contentDiv.innerHTML = text;
     } else {
         contentDiv.textContent = text;
     }
-
     elements.chatContainer.prepend(messageDiv);
     showAndAutoHideChat();
-
     if (sender === "assistant") {
         messageDiv.dataset.fullText = text;
         if (text) {
              finalizeStreamedMessage(messageDiv);
         }
     }
-    
     return messageDiv;
 }
 
 export async function updateStreamedMessage(messageDiv, chunk) {
     if (!messageDiv) return;
-
     const contentDiv = messageDiv.querySelector('.message-content');
     if (contentDiv) {
         if (!messageDiv.dataset.fullText) messageDiv.dataset.fullText = "";
@@ -181,9 +160,7 @@ export async function updateStreamedMessage(messageDiv, chunk) {
 
 export function finalizeStreamedMessage(messageDiv) {
     if (!messageDiv || messageDiv.querySelector('.code-block-header')) return; 
-
     const fullText = messageDiv.dataset.fullText || messageDiv.querySelector('.message-content').innerText;
-    
     const copyButton = document.createElement("button");
     copyButton.classList.add("copy-button");
     copyButton.innerHTML = "Copiar";
@@ -195,7 +172,6 @@ export function finalizeStreamedMessage(messageDiv) {
         });
     });
     messageDiv.appendChild(copyButton);
-
     messageDiv.querySelectorAll('pre').forEach(preBlock => {
         const codeText = preBlock.querySelector('code').innerText;
         const wrapper = document.createElement('div');
@@ -244,10 +220,8 @@ export function finalizeStreamedMessage(messageDiv) {
         wrapper.appendChild(header);
         wrapper.appendChild(preBlock);
     });
-
     updateSpeechBubble(fullText.substring(0, 120) + "...", false);
 }
-
 
 export function renderMeetingList(meetings) {
     if (!elements.chatContainer) return;

@@ -300,7 +300,6 @@ ipcMain.handle('gaia:get-games', async () => {
     return await dbManager.hobbie.listGames();
 });
 
-// --- INÍCIO DA ALTERAÇÃO ---
 // --- Handlers para o Hub de Comandos ---
 ipcMain.handle('commands:get-pinned', async (event, aiModelKey) => {
     return await dbManager.commands.getPinned(aiModelKey);
@@ -308,7 +307,6 @@ ipcMain.handle('commands:get-pinned', async (event, aiModelKey) => {
 ipcMain.handle('commands:set-pinned', async (event, { aiModelKey, commandsArray }) => {
     return await dbManager.commands.setPinned(aiModelKey, commandsArray);
 });
-// --- FIM DA ALTERAÇÃO ---
 
 // --- Handlers para o AI MANAGER ---
 ipcMain.handle('ai:get-models', () => {
@@ -328,16 +326,14 @@ ipcMain.handle('ai:set-model', (event, modelKey) => {
     return success;
 });
 
-// --- LÓGICA CENTRAL DE PROCESSAMENTO DE MENSAGENS (COM AS CORREÇÕES) ---
+// --- LÓGICA CENTRAL DE PROCESSAMENTO DE MENSAGENS ---
 ipcMain.handle("call-ai", async (event, payload) => {
     try {
         let { userInput } = payload;
         const activeModel = aiManager.getActiveModel();
 
-        if (activeModel && activeModel.key === 'gaia') {
-            if (!userInput.trim().startsWith('/gaia')) {
-                userInput = `/gaia ${userInput}`;
-            }
+        if (activeModel && activeModel.key === 'gaia' && !userInput.trim().startsWith('/gaia')) {
+            userInput = `/gaia ${userInput}`;
         }
 
         if (userInput.trim().startsWith('/')) {
@@ -346,7 +342,7 @@ ipcMain.handle("call-ai", async (event, payload) => {
                 createLiveScribeWindow: windowManager.createLiveScribeWindow 
             };
             const response = await pluginManager.handleCommand(userInput, app, mainProcessContext);
-            return await processPluginResponse(response); // Mudança para a nova função
+            return await processPluginResponse(response);
         } else {
             const mainWindow = windowManager.getMainWindow();
             aiManager.generateResponse(payload, mainWindow);
@@ -358,23 +354,37 @@ ipcMain.handle("call-ai", async (event, payload) => {
     }
 });
 
-// --- NOVA FUNÇÃO DE PROCESSAMENTO, MAIS ROBUSTA E CLARA ---
 async function processPluginResponse(response) {
-    // Caso de NADA ser retornado
     if (!response) {
         return { type: 'final_action', html: "O comando não retornou uma resposta válida." };
     }
 
-    // Caso de ações que não mostram nada no chat
     if (response.type === 'action') {
-        if(response.action === 'suppress_chat_response') {
+        // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+        if (response.action === 'pomodoro_leisure_start') {
+            if (pomodoroManager) {
+                // 1. Mostra a UI do pomodoro na janela principal
+                const mainWindow = windowManager.getMainWindow();
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('pomodoro-show-widget');
+                }
+                // 2. Inicia o timer de lazer
+                pomodoroManager.startLeisure(response.payload);
+            }
+            // Retorna uma resposta amigável para o chat
+            const durationText = response.payload ? `${response.payload} minutos` : 'padrão de 30 minutos';
+            const htmlResponse = await aiManager.formatToHtml(`Ok, iniciando timer de lazer de ${durationText}. Aproveite!`);
+            return { type: 'final_action', html: htmlResponse };
+        }
+        // --- FIM DA ALTERAÇÃO ---
+
+        if (response.action === 'suppress_chat_response') {
             return { type: 'final_action', action: 'suppress_chat_response' };
         }
         const actionText = response.payload ? `Ação '${response.action}' com '${response.payload}' executada.` : `Ação '${response.action}' executada.`;
         return { type: 'final_action', html: actionText };
     }
 
-    // Caso de uma lista (ex: /reuniao listar)
     if (response.type === "list_response") {
         const mainWindow = windowManager.getMainWindow();
         mainWindow.webContents.send("list-response", response.content);
@@ -382,7 +392,6 @@ async function processPluginResponse(response) {
     }
 
     const messageContent = response.message || response.content || "Ocorreu um erro no plugin.";
-
     if (response.success === false) {
         return { type: 'final_action', html: `<strong>Erro:</strong> ${messageContent}` };
     }
