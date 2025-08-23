@@ -283,11 +283,6 @@ async function getActiveGames() {
     return await db.all("SELECT * FROM games WHERE status = 'Jogando Atualmente'");
 }
 
-// --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
-/**
- * Busca um log de jogo aleatório com humor positivo (>= 4).
- * @returns {Promise<object|undefined>} Um objeto contendo o título do jogo e o texto do log, ou undefined se nenhum for encontrado.
- */
 async function getRandomPositiveGameLog() {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const query = `
@@ -301,6 +296,27 @@ async function getRandomPositiveGameLog() {
         LIMIT 1;
     `;
     return await db.get(query);
+}
+
+// --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+/**
+ * Busca todos os logs de jogos, ordenados do mais recente para o mais antigo.
+ * @returns {Promise<object[]>} Um array com todos os logs de jogos.
+ */
+async function getGameLogs() {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    const query = `
+        SELECT
+            gl.id,
+            gl.log_text,
+            gl.mood_rating,
+            gl.created_at,
+            g.title as game_title
+        FROM game_logs gl
+        JOIN games g ON gl.game_id = g.id
+        ORDER BY gl.created_at DESC;
+    `;
+    return await db.all(query);
 }
 // --- FIM DA ALTERAÇÃO ---
 
@@ -566,6 +582,9 @@ module.exports = {
       updateGameStatus,
       getActiveGames,
       getRandomPositiveGameLog,
+      // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+      getGameLogs,
+      // --- FIM DA ALTERAÇÃO ---
   },
   commands: {
       getPinned: getPinnedCommands,

@@ -85,11 +85,11 @@ function initializeReminders(win) {
     setInterval(() => {
         // Roda a cada 2 horas, mas com 25% de chance de realmente disparar.
         // Isso evita que se torne muito frequente e repetitivo.
-        const shouldTrigger = Math.random() < 1; 
+        const shouldTrigger = Math.random() < 0.25; 
         if (shouldTrigger) {
             triggerProactiveMemory(win);
         }
-    }, 5000); // A cada 2 horas (7200000 ms)
+    }, 1000 * 60 * 120); // A cada 2 horas (7200000 ms)
     // --- FIM DA ALTERAÇÃO ---
 }
 

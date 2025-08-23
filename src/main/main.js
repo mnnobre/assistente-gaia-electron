@@ -335,6 +335,11 @@ ipcMain.handle('task:get-work-logs', async (event, taskId) => {
 ipcMain.handle('gaia:get-games', async () => {
     return await dbManager.hobbie.listGames();
 });
+// --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+ipcMain.handle('gaia:get-game-logs', async () => {
+    return await dbManager.hobbie.getGameLogs();
+});
+// --- FIM DA ALTERAÇÃO ---
 
 // --- Handlers para o Hub de Comandos ---
 ipcMain.handle('commands:get-pinned', async (event, aiModelKey) => {

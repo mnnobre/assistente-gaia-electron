@@ -52,6 +52,9 @@ contextBridge.exposeInMainWorld('api', {
     // --- Módulo G.A.I.A. (para o Dashboard) ---
     gaia: {
         getGames: () => ipcRenderer.invoke('gaia:get-games'),
+        // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+        getGameLogs: () => ipcRenderer.invoke('gaia:get-game-logs'),
+        // --- FIM DA ALTERAÇÃO ---
     },
 
     // --- Módulo de Comandos (para o Hub de IA) ---
@@ -98,9 +101,7 @@ contextBridge.exposeInMainWorld('api', {
             'context:do-recapture',
             'scribe:live-update',
             'scribe:analysis-result',
-            // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
             'proactive-memory',
-            // --- FIM DA ALTERAÇÃO ---
         ];
         if (validChannels.includes(channel)) {
             console.log(`[PRELOAD] Registrando listener para o canal: "${channel}"`);

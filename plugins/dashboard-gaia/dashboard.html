@@ -8,30 +8,43 @@
 </head>
 <body class="bg-base-200">
 
-    <div class="container mx-auto p-8 space-y-8">
+    <div class="container mx-auto p-4 md:p-8 space-y-8">
         
         <header class="text-center">
             <h1 class="text-4xl font-bold text-primary">Dashboard de Lazer</h1>
             <p class="text-lg text-base-content/70 mt-2">Seu espaço para relaxar e redescobrir seus jogos.</p>
         </header>
 
-        <!-- Seção da Estante de Jogos -->
-        <section id="game-shelf-section">
-            <h2 class="text-2xl font-bold mb-4 border-b-2 border-primary/50 pb-2">📚 Sua Estante de Jogos</h2>
-            
-            <!-- O container onde os cards dos jogos serão inseridos pelo JS -->
-            <div id="game-shelf-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Layout principal de duas colunas -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Coluna Esquerda: Estante de Jogos -->
+            <section id="game-shelf-section" class="lg:col-span-2">
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-primary/50 pb-2">📚 Sua Estante de Jogos</h2>
                 
-                <!-- Placeholder de Carregamento -->
-                <div id="loading-placeholder" class="col-span-full text-center p-10">
-                    <span class="loading loading-lg loading-spinner text-primary"></span>
-                    <p class="mt-4">Carregando sua coleção de jogos...</p>
+                <div id="game-shelf-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div id="shelf-loading-placeholder" class="col-span-full text-center p-10">
+                        <span class="loading loading-lg loading-spinner text-primary"></span>
+                        <p class="mt-4">Carregando sua coleção...</p>
+                    </div>
                 </div>
+            </section>
 
-            </div>
-        </section>
+            <!-- Coluna Direita: Histórico de Atividades -->
+            <section id="activity-history-section">
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-secondary/50 pb-2">📜 Histórico de Atividades</h2>
 
-        <!-- Futuras seções, como Histórico de Atividades, podem vir aqui -->
+                <!-- Container para o Timeline -->
+                <div id="timeline-container" class="max-h-[80vh] overflow-y-auto pr-2">
+                    <!-- O Timeline da daisyUI será inserido aqui pelo JS -->
+                     <div id="history-loading-placeholder" class="text-center p-10">
+                        <span class="loading loading-lg loading-spinner text-secondary"></span>
+                        <p class="mt-4">Buscando suas memórias...</p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
         
     </div>
 
