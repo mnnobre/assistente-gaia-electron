@@ -97,17 +97,16 @@ contextBridge.exposeInMainWorld('api', {
             'context:attachment-deleted',
             'context:do-recapture',
             'scribe:live-update',
-            'scribe:analysis-result'
+            'scribe:analysis-result',
+            // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+            'proactive-memory',
+            // --- FIM DA ALTERAÇÃO ---
         ];
         if (validChannels.includes(channel)) {
-            // --- INÍCIO DA DEPURAÇÃO ---
             console.log(`[PRELOAD] Registrando listener para o canal: "${channel}"`);
-            // --- FIM DA DEPURAÇÃO ---
             ipcRenderer.removeAllListeners(channel);
             ipcRenderer.on(channel, (event, ...args) => {
-                // --- INÍCIO DA DEPURAÇÃO ---
                 console.log(`[PRELOAD] Evento recebido no canal: "${channel}" com os dados:`, ...args);
-                // --- FIM DA DEPURAÇÃO ---
                 callback(...args);
             });
         }

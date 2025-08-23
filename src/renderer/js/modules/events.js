@@ -163,18 +163,22 @@ export function setupEventListeners() {
         });
         window.api.on("meal-reminder", (message) => { ui.updateSpeechBubble(message, false); });
         
+        // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+        // Listener para as mensagens nostálgicas da G.A.I.A.
+        window.api.on("proactive-memory", (message) => {
+            ui.updateSpeechBubble(message, false);
+        });
+        // --- FIM DA ALTERAÇÃO ---
+
         window.api.on("playback-state-updated", (newState) => {
             getState().setPlaybackState(newState || { isPlaying: false });
         });
 
         window.api.on("list-response", (meetings) => { ui.renderMeetingList(meetings); });
         
-        // --- INÍCIO DA CORREÇÃO ---
-        // Adiciona o listener que faltava para mostrar o widget
         window.api.on("pomodoro-show-widget", () => {
             ui.showPomodoroWidget(true);
         });
-        // --- FIM DA CORREÇÃO ---
 
         window.api.on("pomodoro-tick", (data) => {
             store.getState().setPomodoroData(data);

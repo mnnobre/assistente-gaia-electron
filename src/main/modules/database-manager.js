@@ -153,13 +153,10 @@ async function initializeDatabase(app) {
             );
         `);
     
-    // --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
-    // Adiciona a coluna 'status' à tabela de jogos, se ela não existir.
     const gamesTableInfo = await db.all("PRAGMA table_info(games)");
     if (!gamesTableInfo.some(col => col.name === 'status')) {
         await db.exec("ALTER TABLE games ADD COLUMN status TEXT NOT NULL DEFAULT 'Na Estante'");
     }
-    // --- FIM DA ALTERAÇÃO ---
     
     const meetingsInfo = await db.all("PRAGMA table_info(meetings)");
     if (!meetingsInfo.some(col => col.name === 'full_audio_me')) {
@@ -218,7 +215,7 @@ async function listGames() {
             g.id,
             g.title,
             g.platform,
-            g.status, -- Adicionado o status à listagem
+            g.status,
             GROUP_CONCAT(t.name, ', ') AS tags
         FROM games g
         LEFT JOIN game_tags gt ON g.id = gt.game_id
@@ -272,13 +269,6 @@ async function addGameLog(gameId, logText, moodRating = null) {
     return result.lastID;
 }
 
-// --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
-/**
- * Atualiza o status de um jogo específico.
- * @param {string} gameTitle - O título do jogo a ser atualizado.
- * @param {string} newStatus - O novo status para o jogo.
- * @returns {Promise<number>} O número de linhas afetadas.
- */
 async function updateGameStatus(gameTitle, newStatus) {
     if (!db) throw new Error("Banco de dados não inicializado.");
     const result = await db.run(
@@ -288,13 +278,29 @@ async function updateGameStatus(gameTitle, newStatus) {
     return result.changes;
 }
 
-/**
- * Busca todos os jogos com o status 'Jogando Atualmente'.
- * @returns {Promise<object[]>} Um array com os objetos dos jogos ativos.
- */
 async function getActiveGames() {
     if (!db) throw new Error("Banco de dados não inicializado.");
     return await db.all("SELECT * FROM games WHERE status = 'Jogando Atualmente'");
+}
+
+// --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
+/**
+ * Busca um log de jogo aleatório com humor positivo (>= 4).
+ * @returns {Promise<object|undefined>} Um objeto contendo o título do jogo e o texto do log, ou undefined se nenhum for encontrado.
+ */
+async function getRandomPositiveGameLog() {
+    if (!db) throw new Error("Banco de dados não inicializado.");
+    const query = `
+        SELECT
+            g.title,
+            gl.log_text
+        FROM game_logs gl
+        JOIN games g ON gl.game_id = g.id
+        WHERE gl.mood_rating >= 4
+        ORDER BY RANDOM()
+        LIMIT 1;
+    `;
+    return await db.get(query);
 }
 // --- FIM DA ALTERAÇÃO ---
 
@@ -325,7 +331,7 @@ async function setPinnedCommands(aiModelKey, commandsArray = []) {
     }
 }
 
-// ... (resto do arquivo sem alterações)
+// --- DEMAIS FUNÇÕES ---
 async function addNote(content) {
   if (!db) throw new Error("Banco de dados não inicializado.");
   await db.run("INSERT INTO notes (content) VALUES (?)", [content]);
@@ -557,10 +563,9 @@ module.exports = {
       findGamesByTags,
       findGameByTitle,
       addGameLog,
-      // --- INÍCIO DA ALTERAÇÃO (FASE 8) ---
       updateGameStatus,
       getActiveGames,
-      // --- FIM DA ALTERAÇÃO ---
+      getRandomPositiveGameLog,
   },
   commands: {
       getPinned: getPinnedCommands,
