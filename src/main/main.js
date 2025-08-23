@@ -106,7 +106,7 @@ async function handleCommandProcessing(payload, source = 'desktop') {
         let { userInput } = payload;
         const activeModel = aiManager.getActiveModel();
 
-        if (source === 'desktop' && activeModel && activeModel.key === 'gaia' && !userInput.trim().startsWith('/gaia')) {
+        if (source === 'desktop' && activeModel && activeModel.key === 'gaia' && !userInput.trim().startsWith('/')) {
             userInput = `/gaia ${userInput}`;
         }
 
