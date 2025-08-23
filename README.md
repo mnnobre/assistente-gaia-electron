@@ -16,7 +16,7 @@ Assistente de desktop multifuncional construído com Electron, focado em produti
 #### **Instalação Rápida**
 1.  **Clone o repositório**
     ```bash
-    git clone <URL_DO_SEU_REPOSITORIO>
+    git clone https://github.com/mnnobre/assistente-gaia-electron
     cd Assistente-electron
     ```
 2.  **Instale as dependências**
