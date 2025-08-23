@@ -1,8 +1,9 @@
 /* /styles/components/input.css (VERSÃO FINAL COM ACTIONS BAR SUPERIOR) */
 #input-section {
   position: relative;
-  width: 100%;
   z-index: 101;
+  margin-left: auto;
+  width: calc(100% - 100px);
 }
 
 #input-section.hidden {

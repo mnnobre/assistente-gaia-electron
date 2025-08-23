@@ -5,7 +5,22 @@
   --user-bubble-bg: #0084ff;
   --chat-bg: rgba(40, 44, 52, 0.98);
 }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: transparent; color: var(--text-color); overflow: hidden; }
+
+/* --- INÍCIO DA CORREÇÃO --- */
+/* Força tanto o HTML quanto o BODY a serem transparentes,
+   vencendo qualquer regra base do Tailwind. */
+html, body { 
+    background-color: transparent !important; 
+}
+
+body { 
+    margin: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    color: var(--text-color); 
+    overflow: hidden; 
+}
+/* --- FIM DA CORREÇÃO --- */
+
 #main-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 #app-container { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column-reverse; align-items: center; align-content: center; }
 @keyframes fadeIn { to { opacity: 1; } }

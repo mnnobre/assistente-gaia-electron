@@ -10,7 +10,7 @@ let currentScribeMeetingId = null;
 
 function createWindow() {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-    const winWidth = 320;
+    const winWidth = 500;
     const winHeight = 1200;
     const margin = 20;
     mainWindow = new BrowserWindow({

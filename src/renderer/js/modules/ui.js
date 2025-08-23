@@ -1,6 +1,5 @@
 // =================================================================================
 // MODULE: UI MANAGEMENT
-// Descrição: Contém todas as funções que manipulam diretamente a interface do usuário (DOM).
 // =================================================================================
 
 import * as elements from './elements.js';
@@ -302,19 +301,41 @@ export function scheduleChatHidden() {
     }
 }
 
+// --- INÍCIO DA ALTERAÇÃO (FIX DO CHAT) ---
+function hideSpeechBubble() {
+    const speechBubble = document.getElementById('speech-bubble'); // O elemento agora é o chat-bubble
+    if (speechBubble) {
+        speechBubble.parentElement.parentElement.classList.add('hidden');
+    }
+    store.getState().clearTimeoutId('bubble');
+}
+
 export function scheduleBubbleHide() {
-    store.getState().setTimeoutId('bubble', setTimeout(() => {
-        if (elements.speechBubble) elements.speechBubble.classList.add("hidden");
-    }, 2000));
+    store.getState().setTimeoutId('bubble', setTimeout(hideSpeechBubble, 60000)); // 1 minuto
 }
 
 export function updateSpeechBubble(text, isLoading = false) {
-    if (!elements.speechBubbleP || !elements.speechBubble) return;
-    elements.speechBubbleP.textContent = text;
-    elements.speechBubble.classList.toggle("loading", isLoading);
-    elements.speechBubble.classList.remove("hidden");
-    if (!isLoading) scheduleBubbleHide();
+    const speechBubbleContainer = document.getElementById('speech-bubble-container');
+    const speechBubbleText = document.getElementById('speech-bubble-text');
+    const speechBubbleClose = document.getElementById('speech-bubble-close');
+
+    if (!speechBubbleContainer || !speechBubbleText) return;
+
+    store.getState().clearTimeoutId('bubble');
+    
+    speechBubbleText.textContent = text;
+    speechBubbleContainer.classList.remove("hidden");
+
+    if (speechBubbleClose && !speechBubbleClose.dataset.listenerAttached) {
+        speechBubbleClose.addEventListener('click', hideSpeechBubble);
+        speechBubbleClose.dataset.listenerAttached = 'true';
+    }
+
+    if (!isLoading) {
+        scheduleBubbleHide();
+    }
 }
+// --- FIM DA ALTERAÇÃO ---
 
 function updatePomodoroPosition() {
     if (!elements.pomodoroWidget || !elements.chatContainer) return;

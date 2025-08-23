@@ -1,16 +1,15 @@
+/* /styles/components/character.css (VERSÃO FINAL COM CONTAINER EXPANDIDO) */
+
 #character-container {
   position: absolute;
-  /* A posição 'bottom' será controlada pelo JavaScript */
   bottom: 10px;
   left: 0;
   width: 100%;
   height: 180px;
-  pointer-events: none;
+  pointer-events: none; 
   z-index: 103;
-  /* A transição na propriedade 'bottom' volta a ser importante */
   transition: bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-
 
 #character-image {
   height: 100%;
@@ -24,28 +23,42 @@
   cursor: pointer;
 }
 
-#speech-bubble {
+/* --- INÍCIO DA ALTERAÇÃO FINAL --- */
+#speech-bubble-container {
   position: absolute;
-  bottom: 50px;
-  left: 15px;
-  right: 120px;
-  background-color: var(--secondary-bg);
-  padding: 12px;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  bottom: 80px;
+  /* Garante que o container comece na borda esquerda da janela */
+  left: 0; 
+  /* Garante que o container termine onde o personagem começa */
+  right: 125px; 
   pointer-events: all;
-  transition: opacity 0.4s ease-in-out;
+  opacity: 1;
+  transform-origin: bottom right;
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  /* Adiciona um preenchimento à direita para o balão não colar no personagem */
+  padding-right: 15px; 
 }
 
-#speech-bubble.hidden {
+/* Ajusta a div do DaisyUI para se comportar corretamente dentro do nosso container */
+#speech-bubble-container .chat {
+    justify-content: flex-end; /* Alinha o balão à direita (próximo ao personagem) */
+}
+
+/* Garante que o balão use o espaço disponível, mas não mais que isso */
+#speech-bubble-container .chat-bubble {
+    max-width: 100%;
+}
+/* --- FIM DA ALTERAÇÃO FINAL --- */
+
+#speech-bubble-container.hidden {
   opacity: 0;
+  transform: scale(0.95);
   pointer-events: none;
 }
 
 #app-container{
     --character-bottom: 150px;
 }
-
 
 #app-container:has(#input-section.hidden){
     --character-bottom: 0;

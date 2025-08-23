@@ -3,16 +3,15 @@
 /* ================================================================================= */
 
 #app-container{
-    --chat-bottom: 200px;
+    --chat-bottom: 250px;
 }
 
 #app-container:has(#input-section.hidden){
-    --chat-bottom: 90px;
+    --chat-bottom: 320px;
 }
 
 #chat-container {
   position: relative;
-  width: 100%;
   box-sizing: border-box;
   left: 0;
   right: 0;
@@ -28,6 +27,8 @@
   border-radius: 6px;
   /* Garante que a barra de rolagem não empurre o conteúdo */
   scrollbar-gutter: stable;
+  margin-left: auto;
+  width: calc(100% - 100px);
 }
 
 #chat-container:has(*) {
