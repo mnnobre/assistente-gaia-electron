@@ -2,6 +2,10 @@ const { app, ipcMain, BrowserWindow } = require("electron");
 const path = require("path");
 require("dotenv").config();
 
+const express = require('express');
+const http = require('http');
+const { Server } = require("socket.io");
+
 try {
   require('electron-reloader')(module);
 } catch (_) {}
@@ -25,12 +29,8 @@ app.commandLine.appendSwitch("disable-software-rasterizer");
 // --- VARIÁVEIS DE ESTADO ---
 let pomodoroManager;
 let modalWindow = null;
+let io; 
 
-// --- INÍCIO DA REATORAÇÃO (BUG FIX) ---
-/**
- * Centraliza a lógica de ações que podem ser chamadas por plugins.
- * Isso garante que a lógica seja reutilizável e fácil de manter.
- */
 const actionHandlers = {
     pomodoro_show: () => {
         const mainWindow = windowManager.getMainWindow();
@@ -61,8 +61,6 @@ const actionHandlers = {
     player_control: (payload) => {
         const playerView = playerManager.getView();
         if (playerView?.webContents && !playerView.webContents.isDestroyed()) {
-            // Em vez de executar JS que retorna uma Promise, enviamos um evento IPC.
-            // Isso evita o erro "object could not be cloned".
             playerView.webContents.send('execute-player-control', payload);
         }
     },
@@ -71,7 +69,6 @@ const actionHandlers = {
         playerManager.loadUrl(url);
     }
 };
-// --- FIM DA REATORAÇÃO ---
 
 
 // --- INICIALIZAÇÃO ---
@@ -90,6 +87,8 @@ app.whenReady().then(async () => {
     pomodoroManager = new PomodoroManager(mainWindow);
     playerManager.setMainWindow(mainWindow);
     initializeReminders(mainWindow);
+
+    startWebServer();
     
   } catch (error) {
     console.error("FALHA CRÍTICA AO INICIAR O APP:", error);
@@ -97,13 +96,112 @@ app.whenReady().then(async () => {
   }
 });
 
+/**
+ * Função central que processa um comando de texto, vindo da UI principal ou de fontes externas.
+ * @param {object} payload - O objeto contendo os dados, principalmente `userInput`.
+ * @param {string} [source='desktop'] - A origem do comando ('desktop' ou 'mobile').
+ */
+async function handleCommandProcessing(payload, source = 'desktop') {
+    try {
+        let { userInput } = payload;
+        const activeModel = aiManager.getActiveModel();
+
+        if (source === 'desktop' && activeModel && activeModel.key === 'gaia' && !userInput.trim().startsWith('/gaia')) {
+            userInput = `/gaia ${userInput}`;
+        }
+
+        if (userInput.trim().startsWith('/')) {
+            const mainProcessContext = {
+                createScribeWindow: windowManager.createScribeWindow,
+                createLiveScribeWindow: windowManager.createLiveScribeWindow
+            };
+            const response = await pluginManager.handleCommand(userInput, app, mainProcessContext);
+            
+            const finalResponse = await processPluginResponse(response);
+            
+            if (source === 'mobile' && io && finalResponse && finalResponse.html) {
+                io.emit('assistant-response', finalResponse.html);
+            }
+            
+            return finalResponse;
+
+        } else {
+            const mainWindow = windowManager.getMainWindow();
+            if (source === 'desktop' && mainWindow) {
+                aiManager.generateResponse(payload, mainWindow);
+                return { action: "stream_started" };
+            }
+        }
+    } catch (error) {
+        console.error("[Main Process] Erro no handleCommandProcessing:", error);
+        return { type: 'final_action', error: "Ocorreu um erro interno ao processar o comando." };
+    }
+}
+
+
+// --- LÓGICA DO SERVIDOR WEB ---
+function startWebServer() {
+    const serverApp = express();
+    const httpServer = http.createServer(serverApp);
+    io = new Server(httpServer);
+
+    const port = 3131;
+    
+    serverApp.use(express.json());
+
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // Rotas para servir os arquivos estáticos do cliente móvel
+    serverApp.get('/mobile-client', (req, res) => {
+        res.sendFile(path.join(__dirname, '..', '..', 'public', 'overlay', 'index.html'));
+    });
+    serverApp.use('/overlay', express.static(path.join(__dirname, '..', '..', 'public', 'overlay')));
+    // --- FIM DA ALTERAÇÃO ---
+
+    serverApp.post('/webhook', async (req, res) => {
+        const apiKey = req.headers['x-api-key'];
+        if (apiKey !== 'teste') { 
+            return res.status(401).send('Acesso não autorizado.');
+        }
+
+        let userInput = req.body.command;
+        if (!userInput) {
+            return res.status(400).send('O corpo da requisição precisa conter a chave "command".');
+        }
+
+        console.log(`[Servidor Web] Comando recebido do webhook: "${userInput}"`);
+        
+        const commandForGaia = userInput.trim().startsWith('/gaia') ? userInput : `/gaia ${userInput}`;
+        
+        handleCommandProcessing({ userInput: commandForGaia }, 'mobile');
+
+        res.status(200).send({ message: "Comando recebido e sendo processado." });
+    });
+    
+    io.on('connection', (socket) => {
+        console.log('[Socket.io] Um cliente web se conectou!');
+        
+        // --- INÍCIO DA ALTERAÇÃO ---
+        // Ouve por comandos vindos do cliente web
+        socket.on('send-command', (userInput) => {
+            console.log(`[Socket.io] Comando recebido do cliente web: "${userInput}"`);
+            const commandForGaia = userInput.trim().startsWith('/gaia') ? userInput : `/gaia ${userInput}`;
+            handleCommandProcessing({ userInput: commandForGaia }, 'mobile');
+        });
+        // --- FIM DA ALTERAÇÃO ---
+    });
+
+    httpServer.listen(port, '0.0.0.0', () => {
+        console.log(`[Servidor Web] Assistente ouvindo em http://localhost:${port}`);
+    });
+}
+
+
 // --- LÓGICA DA JANELA MODAL ---
 function createModalWindow(options) {
     if (modalWindow) {
         modalWindow.focus();
         return;
     }
-
     const mainWindow = windowManager.getMainWindow();
     modalWindow = new BrowserWindow({
         width: options.width || 600,
@@ -121,26 +219,20 @@ function createModalWindow(options) {
             webSecurity: false
         },
     });
-
     const modalPath = path.join(__dirname, '..', 'renderer', 'modal.html');
     const url = new URL(`file://${modalPath}`);
     url.searchParams.append('view', options.view);
-    
     url.searchParams.append('root', path.join(__dirname, '..', 'renderer')); 
-
     if (options.data) {
         Object.entries(options.data).forEach(([key, value]) => {
             const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
             url.searchParams.append(key, stringValue);
         });
     }
-
     modalWindow.loadURL(url.href);
-
     modalWindow.once('ready-to-show', () => {
         modalWindow.show();
     });
-
     modalWindow.on('closed', () => {
         modalWindow = null;
     });
@@ -148,7 +240,6 @@ function createModalWindow(options) {
 
 
 // --- LÓGICA DE COMUNICAÇÃO (IPC) ---
-
 ipcMain.on('modal:open', (event, options) => {
     createModalWindow(options);
 });
@@ -157,21 +248,14 @@ ipcMain.on('modal:close', () => {
         modalWindow.close();
     }
 });
-
 ipcMain.on('scribe:resize', (event, { height }) => {
     const liveScribeWindow = windowManager.getLiveScribeWindow();
     if (liveScribeWindow && !liveScribeWindow.isDestroyed()) {
         const bounds = liveScribeWindow.getBounds();
         const newY = bounds.y + bounds.height - height;
-        liveScribeWindow.setBounds({
-            y: newY,
-            height: height
-        });
+        liveScribeWindow.setBounds({ y: newY, height: height });
     }
 });
-
-
-// --- Handlers para o Contexto Visual ---
 ipcMain.handle('context:capture-screen', async () => {
     return await contextWatcher.captureScreen();
 });
@@ -185,30 +269,24 @@ ipcMain.handle('context:capture-selection', async () => {
     if (mainWindow) mainWindow.show();
     return result;
 });
-
 ipcMain.on('context:delete-attachment', () => {
     const mainWindow = windowManager.getMainWindow();
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('context:attachment-deleted');
     }
 });
-
 ipcMain.on('context:recapture', async (event, mode) => {
     const mainWindow = windowManager.getMainWindow();
-
     if (modalWindow && !modalWindow.isDestroyed()) {
         await new Promise(resolve => {
             modalWindow.once('closed', resolve);
             modalWindow.close();
         });
     }
-
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('context:do-recapture', mode);
     }
 });
-
-
 ipcMain.handle('get-commands', async () => {
   return pluginManager.getCommandList();
 });
@@ -225,34 +303,25 @@ ipcMain.on("playback-state-changed", (event, state) => {
     mainWindow.webContents.send("playback-state-updated", state);
   }
 });
-
 ipcMain.handle("scribe:get-data", async (event, { meetingId }) => {
   if (!meetingId) return null;
-  
   const meeting = await dbManager.scribe.getMeetingById(meetingId);
   const transcripts = await dbManager.scribe.getTranscriptsForMeeting(meetingId);
-
   return { meeting, transcripts };
 });
-
-
 ipcMain.handle('scribe:analyze-text', async (event, { context, question }) => {
     const prompt = `
         Com base nos seguintes trechos de uma transcrição de reunião, responda à pergunta do usuário.
         Seja conciso e direto. Use markdown para formatar a resposta.
-
         **Contexto da Reunião:**
         ---
         ${context}
         ---
-
         **Pergunta do Usuário:**
         ${question}
     `;
-    
     const answerText = await aiManager.getCompleteResponse(prompt);
     const answerHtml = await aiManager.formatToHtml(answerText);
-    
     const liveScribeWindow = windowManager.getLiveScribeWindow();
     if (liveScribeWindow && !liveScribeWindow.isDestroyed()) {
         liveScribeWindow.webContents.send('scribe:analysis-result', {
@@ -261,16 +330,11 @@ ipcMain.handle('scribe:analyze-text', async (event, { context, question }) => {
             answer: answerHtml,
         });
     }
-    
     return { success: true };
 });
-
-
 ipcMain.on("pomodoro-control", (event, action) => {
   actionHandlers.pomodoro_control(action);
 });
-
-// --- Handlers para o sistema de memória ---
 ipcMain.handle('memory:get-sessions', async () => {
     return await dbManager.memory.getSessions();
 });
@@ -296,9 +360,6 @@ ipcMain.on('memory:selection-changed', (event, selectionData) => {
         mainWindow.webContents.send('memory:update-in-main-window', selectionData);
     }
 });
-
-
-// --- Handlers para o Task Hub ---
 ipcMain.handle('task:get-companies', async () => {
     return await dbManager.taskHub.companies.list();
 });
@@ -330,26 +391,18 @@ ipcMain.handle('task:delete-task', async (event, taskId) => {
 ipcMain.handle('task:get-work-logs', async (event, taskId) => {
     return await dbManager.taskHub.workLogs.getForTask(taskId);
 });
-
-// --- Handlers para o Dashboard G.A.I.A. ---
 ipcMain.handle('gaia:get-games', async () => {
     return await dbManager.hobbie.listGames();
 });
-// --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
 ipcMain.handle('gaia:get-game-logs', async () => {
     return await dbManager.hobbie.getGameLogs();
 });
-// --- FIM DA ALTERAÇÃO ---
-
-// --- Handlers para o Hub de Comandos ---
 ipcMain.handle('commands:get-pinned', async (event, aiModelKey) => {
     return await dbManager.commands.getPinned(aiModelKey);
 });
 ipcMain.handle('commands:set-pinned', async (event, { aiModelKey, commandsArray }) => {
     return await dbManager.commands.setPinned(aiModelKey, commandsArray);
 });
-
-// --- Handlers para o AI MANAGER ---
 ipcMain.handle('ai:get-models', () => {
     return aiManager.getAvailableModels();
 });
@@ -368,59 +421,31 @@ ipcMain.handle('ai:set-model', (event, modelKey) => {
 });
 
 // --- LÓGICA CENTRAL DE PROCESSAMENTO DE MENSAGENS ---
-ipcMain.handle("call-ai", async (event, payload) => {
-    try {
-        let { userInput } = payload;
-        const activeModel = aiManager.getActiveModel();
-
-        if (activeModel && activeModel.key === 'gaia' && !userInput.trim().startsWith('/gaia')) {
-            userInput = `/gaia ${userInput}`;
-        }
-
-        if (userInput.trim().startsWith('/')) {
-            const mainProcessContext = { 
-                createScribeWindow: windowManager.createScribeWindow,
-                createLiveScribeWindow: windowManager.createLiveScribeWindow 
-            };
-            const response = await pluginManager.handleCommand(userInput, app, mainProcessContext);
-            return await processPluginResponse(response);
-        } else {
-            const mainWindow = windowManager.getMainWindow();
-            aiManager.generateResponse(payload, mainWindow);
-            return { action: "stream_started" };
-        }
-    } catch (error) {
-        console.error("[Main Process] Erro no handler 'call-ai':", error);
-        return { type: 'final_action', error: "Ocorreu um erro interno." };
-    }
+ipcMain.handle("call-ai", (event, payload) => {
+    return handleCommandProcessing(payload, 'desktop');
 });
 
 async function processPluginResponse(response) {
     if (!response) {
         return { type: 'final_action', html: "O comando não retornou uma resposta válida." };
     }
-
     if (response.type === 'action') {
         if (actionHandlers[response.action]) {
             actionHandlers[response.action](response.payload);
             return { type: 'final_action', action: 'suppress_chat_response' };
         }
-        
         const actionText = response.payload ? `Ação '${response.action}' com '${response.payload}' executada.` : `Ação '${response.action}' executada.`;
         return { type: 'final_action', html: actionText };
     }
-
     if (response.type === "list_response") {
         const mainWindow = windowManager.getMainWindow();
         mainWindow.webContents.send("list-response", response.content);
         return { type: 'final_action', action: 'suppress_chat_response' };
     }
-
     const messageContent = response.message || response.content || "Ocorreu um erro no plugin.";
     if (response.success === false) {
         return { type: 'final_action', html: `<strong>Erro:</strong> ${messageContent}` };
     }
-
     const finalHtml = await aiManager.formatToHtml(messageContent);
     return { type: 'final_action', html: finalHtml };
 }

@@ -5,21 +5,23 @@
   "main": "src/main/main.js",
   "author": "Seu Nome <email@example.com>",
   "license": "ISC",
-"scripts": {
-  "start": "npm run build:css && electron . --inspect=9222",
-  "build:css": "npx tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/main.css --minify",
-  "watch:css": "npx tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/main.css --watch",
-  "test": "vitest",
-  "pack": "electron-builder --dir",
-  "dist": "electron-builder"
-},
+  "scripts": {
+    "start": "npm run build:css && electron . --inspect=9222",
+    "build:css": "npx tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/main.css --minify",
+    "watch:css": "npx tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/main.css --watch",
+    "test": "vitest",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.1.3",
     "chromadb": "^3.0.10",
     "dotenv": "^16.3.1",
+    "express": "^5.1.0",
     "fluent-ffmpeg": "^2.1.3",
     "marked": "^16.1.1",
     "openai": "^5.12.2",
+    "socket.io": "^4.8.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "uuid": "^11.1.0",
