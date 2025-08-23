@@ -26,6 +26,54 @@ app.commandLine.appendSwitch("disable-software-rasterizer");
 let pomodoroManager;
 let modalWindow = null;
 
+// --- INÍCIO DA REATORAÇÃO (BUG FIX) ---
+/**
+ * Centraliza a lógica de ações que podem ser chamadas por plugins.
+ * Isso garante que a lógica seja reutilizável e fácil de manter.
+ */
+const actionHandlers = {
+    pomodoro_show: () => {
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('pomodoro-show-widget');
+        }
+        if (pomodoroManager) {
+            pomodoroManager.start();
+        }
+    },
+    pomodoro_control: (payload) => {
+        if (pomodoroManager && typeof pomodoroManager[payload] === 'function') {
+            pomodoroManager[payload]();
+        }
+    },
+    pomodoro_leisure_start: (payload) => {
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('pomodoro-show-widget');
+        }
+        if (pomodoroManager) {
+            pomodoroManager.startLeisure(payload);
+        }
+    },
+    player_show: () => {
+        playerManager.show();
+    },
+    player_control: (payload) => {
+        const playerView = playerManager.getView();
+        if (playerView?.webContents && !playerView.webContents.isDestroyed()) {
+            // Em vez de executar JS que retorna uma Promise, enviamos um evento IPC.
+            // Isso evita o erro "object could not be cloned".
+            playerView.webContents.send('execute-player-control', payload);
+        }
+    },
+    player_search: (payload) => {
+        const url = `https://music.youtube.com/search?q=${encodeURIComponent(payload)}`;
+        playerManager.loadUrl(url);
+    }
+};
+// --- FIM DA REATORAÇÃO ---
+
+
 // --- INICIALIZAÇÃO ---
 app.whenReady().then(async () => {
   try {
@@ -101,11 +149,6 @@ function createModalWindow(options) {
 
 // --- LÓGICA DE COMUNICAÇÃO (IPC) ---
 
-ipcMain.handle('log-debug', (event, message) => {
-    // Log removido para produção
-});
-
-
 ipcMain.on('modal:open', (event, options) => {
     createModalWindow(options);
 });
@@ -173,12 +216,7 @@ ipcMain.on("player:minimize", () => playerManager.hide());
 ipcMain.on("player:close", () => playerManager.destroy());
 ipcMain.on("player:show", () => playerManager.show());
 ipcMain.on("control-player-action", (event, action) => {
-  const playerView = playerManager.getView();
-  if (playerView?.webContents && !playerView.webContents.isDestroyed()) {
-    playerView.webContents.executeJavaScript(
-      `window.playerControls.${action}`
-    );
-  }
+  actionHandlers.player_control(action);
 });
 ipcMain.on("playback-state-changed", (event, state) => {
   playerManager.getWindow()?.webContents.send("playback-state-updated", state);
@@ -229,9 +267,7 @@ ipcMain.handle('scribe:analyze-text', async (event, { context, question }) => {
 
 
 ipcMain.on("pomodoro-control", (event, action) => {
-  if (pomodoroManager && typeof pomodoroManager[action] === "function") {
-    pomodoroManager[action]();
-  }
+  actionHandlers.pomodoro_control(action);
 });
 
 // --- Handlers para o sistema de memória ---
@@ -360,27 +396,11 @@ async function processPluginResponse(response) {
     }
 
     if (response.type === 'action') {
-        // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
-        if (response.action === 'pomodoro_leisure_start') {
-            if (pomodoroManager) {
-                // 1. Mostra a UI do pomodoro na janela principal
-                const mainWindow = windowManager.getMainWindow();
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('pomodoro-show-widget');
-                }
-                // 2. Inicia o timer de lazer
-                pomodoroManager.startLeisure(response.payload);
-            }
-            // Retorna uma resposta amigável para o chat
-            const durationText = response.payload ? `${response.payload} minutos` : 'padrão de 30 minutos';
-            const htmlResponse = await aiManager.formatToHtml(`Ok, iniciando timer de lazer de ${durationText}. Aproveite!`);
-            return { type: 'final_action', html: htmlResponse };
-        }
-        // --- FIM DA ALTERAÇÃO ---
-
-        if (response.action === 'suppress_chat_response') {
+        if (actionHandlers[response.action]) {
+            actionHandlers[response.action](response.payload);
             return { type: 'final_action', action: 'suppress_chat_response' };
         }
+        
         const actionText = response.payload ? `Ação '${response.action}' com '${response.payload}' executada.` : `Ação '${response.action}' executada.`;
         return { type: 'final_action', html: actionText };
     }

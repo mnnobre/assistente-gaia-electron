@@ -82,14 +82,22 @@
   fill: currentColor;
 }
 
+/* --- INÍCIO DA CORREÇÃO --- */
+/* Por padrão, o ícone de pause não é mostrado */
 #mini-play-pause-button .icon-pause {
   display: none;
 }
-
-#mini-play-pause-button.is-playing .icon-play {
-  display: none;
+/* Por padrão, o ícone de play é mostrado */
+#mini-play-pause-button .icon-play {
+  display: block;
 }
 
+/* Quando o botão TEM a classe 'is-playing'... */
+#mini-play-pause-button.is-playing .icon-play {
+  /* ...o ícone de play é escondido */
+  display: none;
+}
 #mini-play-pause-button.is-playing .icon-pause {
+  /* ...e o ícone de pause é mostrado */
   display: block;
 }

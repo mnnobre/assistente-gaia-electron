@@ -1,4 +1,4 @@
-// /modules/player-manager.js (CORRIGIDO)
+// /modules/player-manager.js (COMUNICAÇÃO CORRIGIDA)
 const { BrowserWindow, BrowserView, session } = require('electron');
 const path = require('path');
 
@@ -37,14 +37,11 @@ class PlayerManager {
 
     destroy() {
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-            console.log('[PlayerManager] Notificando a mainWindow que o player foi destruído.');
             this.mainWindow.webContents.send('playback-state-updated', { title: null, artist: null, isPlaying: false });
         }
-
         if (!this.window) {
             return;
         }
-        console.log('[PlayerManager] Destruindo player...');
         this.window.removeAllListeners('closed');
         if (this.view && this.view.webContents && !this.view.webContents.isDestroyed()) {
             this.view.webContents.destroy();
@@ -54,7 +51,6 @@ class PlayerManager {
         }
         this.window = null;
         this.view = null;
-        console.log('[PlayerManager] Player destruído e referências limpas.');
     }
 
     show() {
@@ -70,18 +66,19 @@ class PlayerManager {
             title: "Player de Música",
             frame: false,
             webPreferences: {
-                // ESTA É A CORREÇÃO. A janela principal do player também precisa do preload.
-                preload: path.join(__dirname, '..', 'preload.js'),
+                // O preload principal é necessário para a `window.api` funcionar no player.html
+                preload: path.join(__dirname, '..', '..', 'preload', 'preload.js'),
             },
         });
 
-        this.window.loadFile(path.join(__dirname, '..', 'player.html'));
+        this.window.loadFile(path.join(__dirname, '..', '..', '..', 'player.html'));
 
         const youtubeSession = session.fromPartition("persist:youtube");
         this.view = new BrowserView({
             webPreferences: {
                 session: youtubeSession,
-                preload: path.join(__dirname, '..', 'player-preload.js'),
+                // O preload da view é para interagir com o site do YouTube
+                preload: path.join(__dirname, '..', '..', 'preload', 'player-preload.js'),
             },
         });
 

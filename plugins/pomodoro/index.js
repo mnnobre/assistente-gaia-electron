@@ -1,13 +1,9 @@
-// /plugins/pomodoro/index.js (VERSÃO COM AUTOCOMPLETE)
+// /plugins/pomodoro/index.js (VERSÃO CORRIGIDA)
 
 module.exports = {
     command: "pomodoro",
     description: "Gerencia o timer de produtividade Pomodoro, permitindo iniciar, pausar ou resetar.",
 
-    /**
-     * --- ADICIONADO PARA O AUTOCOMPLETE DA UI ---
-     * Descreve os subcomandos para o usuário final.
-     */
     subcommands: {
         'iniciar': 'Mostra e inicia o timer Pomodoro.',
         'pausar': 'Pausa o timer Pomodoro em execução.',
@@ -28,27 +24,38 @@ module.exports = {
     },
 
     execute: async (args) => {
+        // --- INÍCIO DA CORREÇÃO ---
         let subcommand;
 
-        if (Array.isArray(args)) {
-            const commandMap = { 'start': 'iniciar', 'pause': 'pausar', 'reset': 'resetar', 'parar': 'resetar' };
-            subcommand = commandMap[args[0]?.toLowerCase()];
-        } else {
-            subcommand = args.subcommand?.toLowerCase();
+        if (Array.isArray(args) && args.length > 0) {
+            // Usa o argumento diretamente, se for válido.
+            const arg = args[0]?.toLowerCase();
+            if (['iniciar', 'start', 'pausar', 'pause', 'resetar', 'reset', 'parar', 'stop'].includes(arg)) {
+                subcommand = arg;
+            }
+        } else if (args.subcommand) {
+            subcommand = args.subcommand.toLowerCase();
         }
 
+        // Mapeia todos os sinônimos para os casos do switch
         switch (subcommand || 'iniciar') {
             case "iniciar":
+            case "start":
                 return { type: 'action', action: 'pomodoro_show' };
 
             case "pausar":
+            case "pause":
                 return { type: 'action', action: 'pomodoro_control', payload: 'pause' };
 
             case "resetar":
+            case "reset":
+            case "parar":
+            case "stop":
                  return { type: 'action', action: 'pomodoro_control', payload: 'reset' };
         
             default:
                 return { type: 'action', action: 'pomodoro_show' };
         }
+        // --- FIM DA CORREÇÃO ---
     }
 };

@@ -89,9 +89,7 @@ contextBridge.exposeInMainWorld('api', {
             'list-response',
             'pomodoro-tick',
             'pomodoro-state-changed',
-            // --- INÍCIO DA ALTERAÇÃO ---
             'pomodoro-show-widget',
-            // --- FIM DA ALTERAÇÃO ---
             'ai-model-changed',
             'ai-chunk',
             'ai-stream-end',
@@ -102,8 +100,16 @@ contextBridge.exposeInMainWorld('api', {
             'scribe:analysis-result'
         ];
         if (validChannels.includes(channel)) {
+            // --- INÍCIO DA DEPURAÇÃO ---
+            console.log(`[PRELOAD] Registrando listener para o canal: "${channel}"`);
+            // --- FIM DA DEPURAÇÃO ---
             ipcRenderer.removeAllListeners(channel);
-            ipcRenderer.on(channel, (event, ...args) => callback(...args));
+            ipcRenderer.on(channel, (event, ...args) => {
+                // --- INÍCIO DA DEPURAÇÃO ---
+                console.log(`[PRELOAD] Evento recebido no canal: "${channel}" com os dados:`, ...args);
+                // --- FIM DA DEPURAÇÃO ---
+                callback(...args);
+            });
         }
     },
 })

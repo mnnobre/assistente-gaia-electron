@@ -1,7 +1,5 @@
 // =================================================================================
 // MODULE: EVENT LISTENERS
-// Descrição: Configura todos os event listeners da aplicação, conectando
-// as interações do usuário com as funções principais.
 // =================================================================================
 
 import * as elements from './elements.js';
@@ -170,18 +168,21 @@ export function setupEventListeners() {
         });
 
         window.api.on("list-response", (meetings) => { ui.renderMeetingList(meetings); });
+        
+        // --- INÍCIO DA CORREÇÃO ---
+        // Adiciona o listener que faltava para mostrar o widget
+        window.api.on("pomodoro-show-widget", () => {
+            ui.showPomodoroWidget(true);
+        });
+        // --- FIM DA CORREÇÃO ---
 
-        // --- LÓGICA DO POMODORO REATORA ---
-        // Agora, os listeners apenas atualizam o estado central no store.
         window.api.on("pomodoro-tick", (data) => {
             store.getState().setPomodoroData(data);
         });
         window.api.on("pomodoro-state-changed", (data) => {
-            // Também atualiza o estado antigo para manter o botão de play/pause funcionando
             getState().setPomodoroState(data.state);
             store.getState().setPomodoroData(data);
         });
-        // --- FIM DA LÓGICA DO POMODORO ---
 
         window.api.on('ai-model-changed', (activeModel) => {
             if (activeModel) {
@@ -214,7 +215,6 @@ export function setupEventListeners() {
             ui.removeThumbnail();
         });
 
-        // --- NOVO LISTENER PARA RECAPTURA ---
         window.api.on('context:do-recapture', (mode) => {
             core.handleContextCapture(mode);
         });

@@ -8,8 +8,6 @@ class PluginManager {
     }
 
     loadPlugins() {
-        // CORREÇÃO AQUI: Volta dois diretórios (de 'modules' para 'main', de 'main' para 'src')
-        // para encontrar a pasta 'plugins' que está na raiz.
         const pluginsDir = path.join(__dirname, '..', '..', '..', 'plugins');
         try {
             const pluginFolders = fs.readdirSync(pluginsDir, { withFileTypes: true })
@@ -49,6 +47,11 @@ class PluginManager {
     }
 
     async handleCommand(userInput, app, mainProcessContext = {}) {
+        // --- INÍCIO DA DEPURAÇÃO ---
+        console.log(`\n--- [DEBUG] Iniciando handleCommand ---`);
+        console.log(`[DEBUG] Input do usuário recebido: "${userInput}"`);
+        // --- FIM DA DEPURAÇÃO ---
+
         const args = userInput.trim().split(/\s+/);
         const commandNameWithSlash = args.shift().toLowerCase();
         
@@ -65,9 +68,20 @@ class PluginManager {
         const commandName = commandNameWithSlash.substring(1);
         const plugin = this.plugins.get(commandName);
         
+        // --- INÍCIO DA DEPURAÇÃO ---
+        console.log(`[DEBUG] Comando extraído: "${commandName}"`);
+        console.log(`[DEBUG] Plugin encontrado: ${plugin ? 'Sim (' + plugin.command + ')' : 'Não'}`);
+        // --- FIM DA DEPURAÇÃO ---
+        
         if (plugin) {
             try {
-                return await plugin.execute(args, app, mainProcessContext);
+                // --- INÍCIO DA DEPURAÇÃO ---
+                console.log(`[DEBUG] Executando plugin "${commandName}" com args:`, args);
+                const pluginResponse = await plugin.execute(args, app, mainProcessContext);
+                console.log(`[DEBUG] Resposta recebida do plugin "${commandName}":`, pluginResponse);
+                console.log(`--- [DEBUG] Finalizando handleCommand ---\n`);
+                return pluginResponse;
+                // --- FIM DA DEPURAÇÃO ---
             } catch (error) {
                 console.error(`[PluginManager] Erro ao executar o comando "${commandNameWithSlash}":`, error);
                 return { type: 'direct_response', content: `Ocorreu um erro inesperado ao executar o comando.` };

@@ -16,6 +16,22 @@ function sendPlaybackState() {
     }
 }
 
+// Objeto com as funções de controle, para serem chamadas pelo listener
+const playerControls = {
+    playPause: () => {
+        const el = document.querySelector('#play-pause-button button');
+        el?.click();
+    },
+    next: () => {
+        const el = document.querySelector('.next-button button');
+        el?.click();
+    },
+    prev: () => {
+        const el = document.querySelector('.previous-button button');
+        el?.click();
+    }
+};
+
 window.addEventListener('load', () => {
     setTimeout(() => {
         const playerBar = document.querySelector('ytmusic-player-bar');
@@ -26,22 +42,16 @@ window.addEventListener('load', () => {
         }
     }, 2000);
 
-    // Expondo os controles com os seletores corretos e logs de debug
-    contextBridge.exposeInMainWorld('playerControls', {
-        playPause: () => {
-            const el = document.querySelector('#play-pause-button button');
-            // console.log('Tentando clicar no Play/Pause. Elemento encontrado:', el);
-            el?.click();
-        },
-        next: () => {
-            const el = document.querySelector('.next-button button');
-            // console.log('Tentando clicar em Próximo. Elemento encontrado:', el);
-            el?.click();
-        },
-        prev: () => {
-            const el = document.querySelector('.previous-button button');
-            // console.log('Tentando clicar em Anterior. Elemento encontrado:', el);
-            el?.click();
+    // --- INÍCIO DA CORREÇÃO ---
+    // Ouve o evento vindo do main.js e chama a função de controle correspondente
+    ipcRenderer.on('execute-player-control', (event, action) => {
+        if (playerControls[action]) {
+            playerControls[action]();
         }
     });
+    // --- FIM DA CORREÇÃO ---
+
+    // Expondo os controles via contextBridge não é mais necessário para este fluxo,
+    // mas vamos manter caso seja útil para alguma depuração futura.
+    contextBridge.exposeInMainWorld('playerControls', playerControls);
 });
