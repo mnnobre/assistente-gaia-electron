@@ -1,78 +1,111 @@
-// /js/views/ai-hub-renderer.js (REFATORADO)
+// /js/views/ai-hub-renderer.js (CORRIGIDO)
+
+// Comandos que, por natureza, não precisam de argumentos e sempre serão de ação direta.
+const INTRINSICALLY_DIRECT_COMMANDS = new Set(['/task', '/dashboard']);
 
 /**
- * Renderiza a lista de comandos usando o componente "collapse" do DaisyUI
- * para uma melhor organização visual.
+ * Renderiza a tabela de gerenciamento de comandos com toggles.
+ * @param {HTMLElement} container - O elemento onde a tabela será renderizada.
+ * @param {Array<object>} allCommands - A lista completa de comandos do sistema.
+ * @param {Map<string, object>} commandSettings - Um Map com as configurações salvas.
  */
-function renderCommandsList(container, allCommands, pinnedCommands) {
+function renderCommandsTable(container, allCommands, commandSettings) {
     container.innerHTML = ''; 
-    const pinnedSet = new Set(pinnedCommands);
+
+    const table = document.createElement('table');
+    table.className = 'table table-zebra w-full';
+    
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>Comando</th>
+                <th class="text-center">Ação Direta</th>
+                <th class="text-center">Atalho na Barra</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+    
+    const tbody = table.querySelector('tbody');
+
+    const createRow = (command, isSubcommand = false) => {
+        const commandString = isSubcommand ? `${command.parent.command} ${command.name}` : command.command;
+        const description = isSubcommand ? command.description : command.description;
+        
+        const settings = commandSettings.get(commandString) || { is_quick_action: false, is_direct_action: false };
+        const tr = document.createElement('tr');
+        const isAlwaysDirect = INTRINSICALLY_DIRECT_COMMANDS.has(commandString);
+
+        tr.innerHTML = `
+            <td class="${isSubcommand ? 'pl-8' : ''}">
+                <div class="font-bold">${commandString}</div>
+                <div class="text-xs opacity-60">${description}</div>
+            </td>
+            <td class="text-center">
+                <input 
+                    type="checkbox" 
+                    class="toggle toggle-primary command-toggle" 
+                    data-command-string="${commandString}"
+                    data-setting-type="is_direct_action"
+                    ${(settings.is_direct_action || isAlwaysDirect) ? 'checked' : ''}
+                    ${isAlwaysDirect ? 'disabled' : ''}
+                />
+            </td>
+            <td class="text-center">
+                <input 
+                    type="checkbox" 
+                    class="toggle toggle-success command-toggle" 
+                    data-command-string="${commandString}"
+                    data-setting-type="is_quick_action"
+                    ${settings.is_quick_action ? 'checked' : ''}
+                />
+            </td>
+        `;
+        tbody.appendChild(tr);
+    };
 
     allCommands.forEach(command => {
         if (command.command === '/help' || command.command === '/clear') return;
+        createRow(command, false);
 
-        const commandId = command.command; // Ex: /nota
-        const hasSubcommands = command.subcommands && Object.keys(command.subcommands).length > 0;
-
-        // Cria o componente collapse do DaisyUI
-        const collapseDiv = document.createElement('div');
-        collapseDiv.className = 'collapse collapse-arrow bg-base-200';
-
-        // O checkbox principal (ou um input de rádio se não tiver subcomandos) fica no título do collapse
-        const isMainPinned = pinnedSet.has(commandId);
-        const mainCheckboxHTML = `
-            <div class="form-control">
-                <label class="label cursor-pointer py-0">
-                    <span class="label-text font-semibold">${command.command}</span>
-                    <input type="checkbox" class="checkbox checkbox-primary command-checkbox" value="${commandId}" ${isMainPinned ? 'checked' : ''} />
-                </label>
-            </div>
-        `;
-        
-        // Se houver subcomandos, o título do collapse é um input do tipo 'checkbox' para controlar a abertura/fechamento
-        if (hasSubcommands) {
-            collapseDiv.innerHTML = `
-                <input type="checkbox" /> 
-                <div class="collapse-title text-xl font-medium">${mainCheckboxHTML}</div>
-                <div class="collapse-content"></div>
-            `;
-        } else {
-            // Se não, é apenas uma div sem a funcionalidade de expandir
-            collapseDiv.innerHTML = `<div class="p-4">${mainCheckboxHTML}</div>`;
-        }
-
-        // Adiciona os subcomandos dentro do 'collapse-content' se eles existirem
-        if (hasSubcommands) {
-            const subcommandsContainer = collapseDiv.querySelector('.collapse-content');
-            
-            Object.entries(command.subcommands).forEach(([subName, subDesc]) => {
-                const subcommandId = `${command.command} ${subName}`;
-                const isSubPinned = pinnedSet.has(subcommandId);
-                
-                const subLabel = document.createElement('label');
-                subLabel.className = 'label cursor-pointer';
-                subLabel.innerHTML = `
-                    <span class="label-text">${subName} <span class="text-xs text-base-content/60">${subDesc}</span></span> 
-                    <input type="checkbox" class="checkbox checkbox-primary command-checkbox" value="${subcommandId}" ${isSubPinned ? 'checked' : ''} />
-                `;
-                subcommandsContainer.appendChild(subLabel);
+        if (command.subcommands) {
+            Object.entries(command.subcommands).forEach(([name, description]) => {
+                createRow({ name, description, parent: command }, true);
             });
         }
-        
-        container.appendChild(collapseDiv);
     });
+
+    container.appendChild(table);
 }
 
 
 export async function initialize() {
     const aiModelSelect = document.getElementById("ai-model-select");
-    const commandsListContainer = document.getElementById("commands-list-container");
-    if (!aiModelSelect || !commandsListContainer) return;
+    const commandsContainer = document.getElementById("commands-table-container");
+    if (!aiModelSelect || !commandsContainer) return;
 
-    // --- LÓGICA DA ABA "MODELOS" ---
+    let activeModelKey = null;
+
+    async function loadCommandSettings() {
+        const currentModel = await window.api.ai.getActiveModel();
+        if (!currentModel) return;
+        activeModelKey = currentModel.key;
+
+        commandsContainer.innerHTML = '<div class="text-center p-4"><span class="loading loading-spinner"></span><p>Carregando...</p></div>';
+
+        const [allCommands, settingsObject] = await Promise.all([
+            window.api.getCommands(),
+            window.api.commands.getSettingsForModel(activeModelKey)
+        ]);
+        
+        const commandSettingsMap = new Map(Object.entries(settingsObject));
+        
+        renderCommandsTable(commandsContainer, allCommands, commandSettingsMap);
+    }
+    
     const models = await window.api.ai.getModels();
     const activeModel = await window.api.ai.getActiveModel();
-
+    
     aiModelSelect.innerHTML = '';
     models.forEach(model => {
         const option = new Option(model.name, model.key);
@@ -84,38 +117,29 @@ export async function initialize() {
     }
 
     aiModelSelect.addEventListener('change', async (e) => {
-        const selectedModelKey = e.target.value;
-        await window.api.ai.setModel(selectedModelKey);
-        loadPinnedCommands(); 
+        await window.api.ai.setModel(e.target.value);
+        await loadCommandSettings(); 
     });
 
+    commandsContainer.addEventListener('change', async (event) => {
+        const toggle = event.target;
+        if (toggle.classList.contains('command-toggle') && activeModelKey) {
+            const commandString = toggle.dataset.commandString;
+            const allToggles = commandsContainer.querySelectorAll(`.command-toggle[data-command-string="${commandString}"]`);
+            const newSettings = {};
 
-    // --- LÓGICA DA ABA "AÇÕES RÁPIDAS" ---
-    async function loadPinnedCommands() {
-        const currentModel = await window.api.ai.getActiveModel();
-        if (!currentModel) return;
-
-        commandsListContainer.innerHTML = '<div class="text-center p-4"><span class="loading loading-spinner"></span><p>Carregando...</p></div>';
-
-        const [allCommands, pinnedCommands] = await Promise.all([
-            window.api.getCommands(),
-            window.api.commands.getPinned(currentModel.key)
-        ]);
-        
-        renderCommandsList(commandsListContainer, allCommands, pinnedCommands);
-    }
-    
-    commandsListContainer.addEventListener('change', async (event) => {
-        if (event.target.classList.contains('command-checkbox')) {
-            const currentModel = await window.api.ai.getActiveModel();
-            if (!currentModel) return;
-
-            const allCheckboxes = commandsListContainer.querySelectorAll('.command-checkbox:checked');
-            const newPinnedCommands = Array.from(allCheckboxes).map(cb => cb.value);
-
-            await window.api.commands.setPinned(currentModel.key, newPinnedCommands);
+            allToggles.forEach(t => {
+                newSettings[t.dataset.settingType] = t.checked;
+            });
+            
+            await window.api.commands.updateCommandSetting(activeModelKey, commandString, newSettings);
+            
+            // --- INÍCIO DA ALTERAÇÃO ---
+            // Envia o sinal para a janela principal que as configurações mudaram.
+            window.api.send('commands:settings-changed');
+            // --- FIM DA ALTERAÇÃO ---
         }
     });
 
-    await loadPinnedCommands();
+    await loadCommandSettings();
 }

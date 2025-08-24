@@ -3,7 +3,6 @@ const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 const path = require("path");
 
-// 1. Importa as "fábricas" de cada repositório
 const createSettingsRepository = require('../repositories/settingsRepository');
 const createHobbieRepository = require('../repositories/hobbieRepository');
 const createCommandsRepository = require('../repositories/commandsRepository');
@@ -16,23 +15,50 @@ const createTaskHubRepository = require('../repositories/taskHubRepository');
 
 let dbConnection = null;
 
-// A função de inicialização agora é privada deste módulo
 async function connectAndMigrate(app) {
     if (dbConnection) return dbConnection;
     try {
         const dbPath = path.join(app.getPath("userData"), "assistente.db");
         const db = await open({ filename: dbPath, driver: sqlite3.Database });
 
-        // Toda a lógica de criação de tabelas e migrações permanece aqui
+        await db.exec(`PRAGMA foreign_keys = ON;`);
+        
+        // --- INÍCIO DA ALTERAÇÃO: Nova tabela de configurações de comando ---
         await db.exec(`
-            PRAGMA foreign_keys = ON;
+            CREATE TABLE IF NOT EXISTS command_settings (
+                command_string TEXT NOT NULL,
+                ai_model_key TEXT NOT NULL,
+                is_quick_action INTEGER DEFAULT 0,
+                is_direct_action INTEGER DEFAULT 0,
+                PRIMARY KEY (command_string, ai_model_key)
+            );
+        `);
+
+        // Lógica de migração da tabela antiga 'pinned_commands' para a nova
+        const oldTable = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='pinned_commands'");
+        if (oldTable) {
+            console.log("[Database Migration] Tabela 'pinned_commands' encontrada. Migrando dados para 'command_settings'...");
+            const oldPinned = await db.all("SELECT ai_model_key, command_string FROM pinned_commands");
             
+            if (oldPinned.length > 0) {
+                const stmt = await db.prepare("INSERT OR IGNORE INTO command_settings (command_string, ai_model_key, is_quick_action, is_direct_action) VALUES (?, ?, ?, ?)");
+                for (const pin of oldPinned) {
+                    // Migra o comando como um atalho, mas não como ação direta (comportamento seguro)
+                    await stmt.run(pin.command_string, pin.ai_model_key, 1, 0);
+                }
+                await stmt.finalize();
+            }
+            await db.exec("DROP TABLE pinned_commands");
+            console.log("[Database Migration] Migração concluída. Tabela 'pinned_commands' removida.");
+        }
+        // --- FIM DA ALTERAÇÃO ---
+
+        await db.exec(`
             CREATE TABLE IF NOT EXISTS settings ( key TEXT PRIMARY KEY NOT NULL, value TEXT );
             CREATE TABLE IF NOT EXISTS games ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL UNIQUE, platform TEXT CHECK(platform IN ('PC', 'PS5', 'Switch', 'Outro')) NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP );
             CREATE TABLE IF NOT EXISTS tags ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE );
             CREATE TABLE IF NOT EXISTS game_tags ( game_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE, FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE, PRIMARY KEY (game_id, tag_id) );
             CREATE TABLE IF NOT EXISTS game_logs ( id INTEGER PRIMARY KEY AUTOINCREMENT, game_id INTEGER NOT NULL, log_text TEXT NOT NULL, mood_rating INTEGER CHECK(mood_rating >= 1 AND mood_rating <= 5), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE );
-            CREATE TABLE IF NOT EXISTS pinned_commands ( id INTEGER PRIMARY KEY AUTOINCREMENT, ai_model_key TEXT NOT NULL, command_string TEXT NOT NULL, UNIQUE(ai_model_key, command_string) );
             CREATE TABLE IF NOT EXISTS notes ( id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP );
             CREATE TABLE IF NOT EXISTS meetings ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, full_audio_me BLOB, full_audio_other BLOB );
             CREATE TABLE IF NOT EXISTS transcripts ( id INTEGER PRIMARY KEY AUTOINCREMENT, meeting_id INTEGER NOT NULL, speaker TEXT NOT NULL, text TEXT NOT NULL, audio_blob BLOB, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (meeting_id) REFERENCES meetings (id) ON DELETE CASCADE );
@@ -68,7 +94,6 @@ async function connectAndMigrate(app) {
     }
 }
 
-// 2. Cria o objeto que será exportado. Ele começa "vazio".
 const dbManager = {
     settings: null,
     hobbie: null,
@@ -79,14 +104,12 @@ const dbManager = {
     todos: null,
     memory: null,
     taskHub: null,
-    // A função de inicialização é a única coisa pública no início.
     initializeDatabase: async (app) => {
         const db = await connectAndMigrate(app);
         if (!db) {
             throw new Error("Falha ao estabelecer conexão com o banco de dados.");
         }
 
-        // 3. Popula o objeto dbManager com os repositórios instanciados
         dbManager.settings = createSettingsRepository(db);
         dbManager.hobbie = createHobbieRepository(db);
         dbManager.commands = createCommandsRepository(db);
@@ -98,7 +121,6 @@ const dbManager = {
         dbManager.taskHub = createTaskHubRepository(db);
 
         console.log("[Database] Todos os repositórios foram inicializados.");
-        // Retorna a conexão 'db' para compatibilidade com a chamada original
         return db; 
     }
 };

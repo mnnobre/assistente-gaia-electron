@@ -1,10 +1,9 @@
-<!-- /js/views/ai-hub-content.html (REFATORADO) -->
+<!-- /js/views/ai-hub-content.html (REFATORADO PARA A CENTRAL DE COMANDOS) -->
 <div role="tablist" class="tabs tabs-lifted tabs-lg">
   
   <!-- Aba 1: Modelos -->
   <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Modelos" checked />
   <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
-    
     <div class="form-control w-full">
       <label class="label">
         <span class="label-text text-lg font-semibold">Modelo de IA Ativo</span>
@@ -14,29 +13,28 @@
         <span class="label-text-alt">Selecione o modelo principal para conversas.</span>
       </label>
     </div>
-
   </div>
 
-  <!-- Aba 2: Ações Rápidas -->
-  <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Ações Rápidas" />
+  <!-- Aba 2: Comandos -->
+  <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Comandos" />
   <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
-    
     <div class="form-control w-full">
       <label class="label">
-        <span class="label-text text-lg font-semibold">Ações Rápidas</span>
+        <span class="label-text text-lg font-semibold">Gerenciador de Comandos</span>
       </label>
       <label class="label pt-0">
-        <span class="label-text-alt">Fixe comandos para acesso rápido na interface principal.</span>
+        <span class="label-text-alt">Configure o comportamento e os atalhos de cada comando.</span>
       </label>
     </div>
     
-    <div id="commands-list-container" class="mt-4 space-y-2 max-h-64 overflow-y-auto">
-        <!-- Placeholder de carregamento -->
+    <!-- O container para a nova tabela -->
+    <div id="commands-table-container" class="mt-4 max-h-96 overflow-y-auto">
+        <!-- O JS vai renderizar a tabela aqui -->
         <div class="text-center p-4">
             <span class="loading loading-spinner"></span>
             <p>Carregando comandos...</p>
         </div>
     </div>
-
   </div>
+
 </div>

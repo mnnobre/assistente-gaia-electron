@@ -4,11 +4,8 @@ contextBridge.exposeInMainWorld('api', {
     // --- Funções de comunicação Two-Way (Invocam e esperam uma resposta) ---
     
     sendMessageToAI: (data) => ipcRenderer.invoke('call-ai', data),
-    
     getScribeData: (data) => ipcRenderer.invoke('scribe:get-data', data),
-    
     analyzeScribeText: (data) => ipcRenderer.invoke('scribe:analyze-text', data),
-    
     getCommands: () => ipcRenderer.invoke('get-commands'),
 
     // --- Módulo de IA ---
@@ -25,7 +22,7 @@ contextBridge.exposeInMainWorld('api', {
         captureSelection: () => ipcRenderer.invoke('context:capture-selection'),
     },
 
-    // --- Módulo de memória exposto para o renderer ---
+    // --- Módulo de memória ---
     memory: {
         getSessions: () => ipcRenderer.invoke('memory:get-sessions'),
         getTurns: (sessionId) => ipcRenderer.invoke('memory:get-turns', sessionId),
@@ -49,67 +46,47 @@ contextBridge.exposeInMainWorld('api', {
         getWorkLogs: (taskId) => ipcRenderer.invoke('task:get-work-logs', taskId),
     },
 
-    // --- Módulo G.A.I.A. (para o Dashboard) ---
+    // --- Módulo G.A.I.A. ---
     gaia: {
         getGames: () => ipcRenderer.invoke('gaia:get-games'),
-        // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
         getGameLogs: () => ipcRenderer.invoke('gaia:get-game-logs'),
-        // --- FIM DA ALTERAÇÃO ---
     },
 
-    // --- Módulo de Comandos (para o Hub de IA) ---
+    // --- Módulo de Comandos ---
     commands: {
-        getPinned: (aiModelKey) => ipcRenderer.invoke('commands:get-pinned', aiModelKey),
-        setPinned: (aiModelKey, commandsArray) => ipcRenderer.invoke('commands:set-pinned', { aiModelKey, commandsArray }),
+        getSettingsForModel: (aiModelKey) => ipcRenderer.invoke('commands:get-settings-for-model', aiModelKey),
+        updateCommandSetting: (aiModelKey, commandString, settings) => ipcRenderer.invoke('commands:update-command-setting', { aiModelKey, commandString, settings }),
     },
-
-    // --- Função genérica para ENVIAR mensagens One-Way (Apenas envia) ---
+    
+    // --- Função genérica para ENVIAR mensagens One-Way ---
     send: (channel, data) => {
+        // --- INÍCIO DA ALTERAÇÃO ---
         const validChannels = [
-            'pomodoro-control',
-            'control-player-action',
-            'player:minimize',
-            'player:close',
-            'player:show',
-            'modal:open',
-            'modal:close',
-            'memory:selection-changed',
-            'context:delete-attachment',
-            'context:recapture',
-            'scribe:resize'
+            'pomodoro-control', 'control-player-action', 'player:minimize',
+            'player:close', 'player:show', 'modal:open', 'modal:close',
+            'memory:selection-changed', 'context:delete-attachment',
+            'context:recapture', 'scribe:resize', 'commands:settings-changed' // Canal adicionado
         ];
+        // --- FIM DA ALTERAÇÃO ---
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }
     },
 
-    // --- Função genérica para OUVIR canais (Apenas recebe) ---
+    // --- Função genérica para OUVIR canais ---
     on: (channel, callback) => {
+        // --- INÍCIO DA ALTERAÇÃO ---
         const validChannels = [
-            'playback-state-updated', 
-            'meal-reminder', 
-            'window-focus-changed', 
-            'list-response',
-            'pomodoro-tick',
-            'pomodoro-state-changed',
-            'pomodoro-show-widget',
-            'ai-model-changed',
-            'ai-chunk',
-            'ai-stream-end',
-            'memory:update-in-main-window',
-            'context:attachment-deleted',
-            'context:do-recapture',
-            'scribe:live-update',
-            'scribe:analysis-result',
-            'proactive-memory',
+            'playback-state-updated', 'meal-reminder', 'window-focus-changed', 
+            'list-response', 'pomodoro-tick', 'pomodoro-state-changed',
+            'pomodoro-show-widget', 'ai-model-changed', 'ai-chunk',
+            'ai-stream-end', 'memory:update-in-main-window', 'context:attachment-deleted',
+            'context:do-recapture', 'scribe:live-update', 'scribe:analysis-result',
+            'proactive-memory', 'commands:refresh-quick-actions' // Canal adicionado
         ];
+        // --- FIM DA ALTERAÇÃO ---
         if (validChannels.includes(channel)) {
-            console.log(`[PRELOAD] Registrando listener para o canal: "${channel}"`);
-            ipcRenderer.removeAllListeners(channel);
-            ipcRenderer.on(channel, (event, ...args) => {
-                console.log(`[PRELOAD] Evento recebido no canal: "${channel}" com os dados:`, ...args);
-                callback(...args);
-            });
+            ipcRenderer.on(channel, (event, ...args) => callback(...args));
         }
     },
-})
+});

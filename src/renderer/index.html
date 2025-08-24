@@ -35,9 +35,7 @@
             <div id="input-section">
                 <div id="autocomplete-container" class="hidden"></div>
                 
-                <!-- INÍCIO DA ALTERAÇÃO (FASE 7) -->
                 <div id="quick-actions-bar" class="hidden"></div>
-                <!-- FIM DA ALTERAÇÃO -->
 
                 <div id="actions-bar">
                     <div class="action-group-left">
@@ -50,10 +48,13 @@
                     </div>
                 </div>
 
-                <div id="input-container">
+                <!-- INÍCIO DA ALTERAÇÃO: Adicionada a classe 'relative' -->
+                <div id="input-container" class="relative">
+                    <!-- O renderer.js irá inserir o badge do modo comando aqui -->
                     <textarea id="message-input" placeholder="Digite sua mensagem..." rows="1"></textarea>
                     <button id="send-button">Enviar</button>
                 </div>
+                <!-- FIM DA ALTERAÇÃO -->
 
                 <div id="ai-status-bar">
                     <span id="ai-status-text">IA Ativa: Carregando...</span>
@@ -62,7 +63,6 @@
             </div>
 
             <div id="character-container">
-                <!-- INÍCIO DA ALTERAÇÃO (FIX DO CHAT) -->
                 <div id="speech-bubble-container" class="hidden">
                     <div class="chat chat-end">
                         <div id="speech-bubble" class="chat-bubble shadow-lg relative">
@@ -71,7 +71,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- FIM DA ALTERAÇÃO -->
                 <img src="./character.png" alt="Personagem" id="character-image">
             </div>
 

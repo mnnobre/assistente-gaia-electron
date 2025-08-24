@@ -6,8 +6,6 @@ import { store } from './modules/store.js';
 import * as ui from './modules/ui.js';
 import { setupEventListeners } from './modules/events.js';
 
-// --- INÍCIO DA ALTERAÇÃO (FASE 7) ---
-// Mapeamento de comandos para ícones (pode ser expandido)
 const commandIcons = {
     '/nota': '📝',
     '/task': '✅',
@@ -19,9 +17,6 @@ const commandIcons = {
     'default': '⚡'
 };
 
-/**
- * Busca os comandos fixados e renderiza a barra de ações rápidas.
- */
 async function renderQuickActions() {
     const quickActionsBar = document.getElementById('quick-actions-bar');
     if (!quickActionsBar) return;
@@ -32,42 +27,38 @@ async function renderQuickActions() {
         return;
     }
 
-    const pinnedCommands = await window.api.commands.getPinned(activeModel.key);
+    const commandSettingsObject = await window.api.commands.getSettingsForModel(activeModel.key);
+    const commandSettings = new Map(Object.entries(commandSettingsObject));
+
+    const quickActionCommands = Array.from(commandSettings.entries())
+        .filter(([_, settings]) => settings.is_quick_action);
     
-    quickActionsBar.innerHTML = ''; // Limpa a barra
-    if (pinnedCommands.length === 0) {
+    quickActionsBar.innerHTML = ''; 
+    if (quickActionCommands.length === 0) {
         quickActionsBar.classList.add('hidden');
     } else {
-        pinnedCommands.forEach(command => {
+        quickActionCommands.forEach(([commandString, settings]) => {
             const button = document.createElement('button');
-            const icon = Object.entries(commandIcons).find(([key, val]) => command.startsWith(key))?.[1] || commandIcons.default;
+            const icon = Object.entries(commandIcons).find(([key, _]) => commandString.startsWith(key))?.[1] || commandIcons.default;
+            
             button.className = 'action-button';
             button.textContent = icon;
-            button.title = command;
+            button.title = commandString;
 
-            button.addEventListener('click', () => {
-                // Para comandos simples sem argumentos, executa direto
-                if (['/task', '/dashboard'].includes(command)) {
-                     window.api.sendMessageToAI({ userInput: command });
-                } else {
-                    // Para outros, ativa o modo de comando
-                    store.getState().setActiveCommandMode(command);
-                }
-            });
+            button.dataset.commandString = commandString;
+            button.dataset.isDirectAction = settings.is_direct_action;
+
             quickActionsBar.appendChild(button);
         });
         quickActionsBar.classList.remove('hidden');
     }
 }
 
-/**
- * Atualiza a UI da barra de input com base no modo de comando ativo.
- */
 function updateCommandModeUI() {
     const { activeCommandMode } = store.getState();
     const inputContainer = document.getElementById('input-container');
+    const messageInput = document.getElementById('message-input');
     
-    // Limpa o indicador de modo anterior, se houver
     const existingBadge = document.getElementById('command-mode-badge');
     if (existingBadge) existingBadge.remove();
 
@@ -78,24 +69,26 @@ function updateCommandModeUI() {
         badge.innerHTML = `<span>${activeCommandMode}</span><button id="exit-mode-btn">&times;</button>`;
         inputContainer.prepend(badge);
 
+        messageInput.placeholder = 'Digite o restante do comando...';
+        messageInput.focus();
+
         document.getElementById('exit-mode-btn').addEventListener('click', () => {
             store.getState().setActiveCommandMode(null);
         });
     } else {
         inputContainer.classList.remove('command-mode-active');
+        messageInput.placeholder = 'Digite sua mensagem...';
     }
 }
-// --- FIM DA ALTERAÇÃO ---
 
 
 document.addEventListener("DOMContentLoaded", async () => {
   
-  // 1. Inicializa a aplicação
   try {
     const commands = await window.api.getCommands();
     store.getState().setCommands(commands);
   } catch (error) {
-    // Nenhum log
+    console.error("Falha ao carregar lista de comandos:", error);
   }
   
   ui.updateSpeechBubble("Olá! Estou pronto para ajudar.", false);
@@ -103,12 +96,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   ui.scheduleInputHidden();
   ui.autoResizeTextarea();
   await ui.updateAiStatus();
-  await renderQuickActions(); // <-- Adicionado
+  await renderQuickActions();
 
-  // 2. Conecta todos os eventos
   setupEventListeners();
 
-  // 3. Configura a reatividade da UI
   store.subscribe(
     (state) => state.selectedSuggestionIndex,
     () => ui.updateSuggestionSelection()
@@ -124,15 +115,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     (data) => ui.updatePomodoroWidget(data)
   );
 
-  // --- INÍCIO DA ALTERAÇÃO (FASE 7) ---
-  // Re-renderiza as ações rápidas sempre que o modelo de IA mudar
-  window.api.on('ai-model-changed', renderQuickActions);
-  
-  // Atualiza a UI do input sempre que o modo de comando mudar
   store.subscribe(
     (state) => state.activeCommandMode,
     () => updateCommandModeUI()
   );
+
+  // --- INÍCIO DA ALTERAÇÃO ---
+  // Ouve pelos eventos de mudança de IA e de mudança de configuração
+  // e chama a função para re-renderizar a barra de ações.
+  window.api.on('ai-model-changed', renderQuickActions);
+  window.api.on('commands:refresh-quick-actions', renderQuickActions);
   // --- FIM DA ALTERAÇÃO ---
 
 });

@@ -1,6 +1,5 @@
 // =================================================================================
-// MODULE: CORE INTERACTION LOGIC
-// Descrição: Contém a lógica principal da aplicação.
+// MODULE: CORE INTERACTION LOGIC (CORRIGIDO PARA O NOVO CHAT)
 // =================================================================================
 
 import * as elements from './elements.js';
@@ -37,21 +36,38 @@ export async function handleContextCapture(mode) {
 }
 
 export async function sendMessage() {
-    const getState = store.getState;
+    const { getState, setState } = store;
     if (!elements.messageInput || elements.messageInput.disabled) return; 
     
-    const userInput = elements.messageInput.value.trim();
-    if (userInput === "" && !getState().attachedImageData) return;
+    const userInputText = elements.messageInput.value.trim();
+    const activeCommand = getState().activeCommandMode;
+    // Pega a imagem anexada ANTES de enviá-la, para que possamos exibi-la no chat.
+    const attachedImageData = getState().attachedImageData;
 
-    ui.hideAutocomplete();
-    // Apenas para comandos, a mensagem do usuário não é salva no histórico principal do DB
-    // mas ainda é adicionada visualmente ao chat.
-    ui.addMessageToChat(userInput, "user", false);
+    // --- INÍCIO DA CORREÇÃO ---
+    // Constrói o comando final
+    let finalUserInput;
+    if (activeCommand) {
+        finalUserInput = `${activeCommand} ${userInputText}`.trim();
+        // Não exibe a imagem aqui, pois o comando ativo tem precedência
+        ui.addMessageToChat(finalUserInput, "user"); 
+    } else {
+        finalUserInput = userInputText;
+        // Exibe o texto do usuário JUNTO com a imagem que foi anexada
+        ui.addMessageToChat(userInputText, "user", { imageData: attachedImageData });
+    }
+
+    if (finalUserInput === "" && !attachedImageData) return;
 
     elements.messageInput.value = "";
     ui.autoResizeTextarea();
-    
-    ui.setInputState(true); // Desabilita o input e mostra o indicador de digitação
+    if (activeCommand) {
+        setState({ activeCommandMode: null });
+    }
+    // --- FIM DA CORREÇÃO ---
+
+    ui.hideAutocomplete();
+    ui.setInputState(true); 
     ui.updateSpeechBubble("Processando...", true);
 
     try {
@@ -60,55 +76,44 @@ export async function sendMessage() {
             manualContext = Array.from(getState().selectedMemoryContent.values()).join('\n');
         }
 
-        const imageDataToSend = getState().attachedImageData ? getState().attachedImageData.split(',')[1] : null;
+        const imageDataToSend = attachedImageData ? attachedImageData.split(',')[1] : null;
 
-        const result = await window.api.sendMessageToAI({ userInput, manualContext, imageData: imageDataToSend });
+        const result = await window.api.sendMessageToAI({ userInput: finalUserInput, manualContext, imageData: imageDataToSend });
         
-        ui.removeThumbnail(); // Limpa o anexo de imagem após o envio
+        ui.removeThumbnail(); 
 
-        // --- INÍCIO DA LÓGICA DE RESPOSTA REATORADA ---
-
-        // CASO 1: A resposta é um STREAM da IA da nuvem.
-        // O `main.js` retorna `action: "stream_started"`. A UI fica bloqueada e espera
-        // pelo evento `ai-stream-end` para ser desbloqueada.
         if (result.action === "stream_started") {
+            // No stream, criamos a bolha vazia e deixamos o `ai-chunk` preenchê-la
+            const messageWrapper = ui.addMessageToChat("", "assistant", { isHtml: true });
+            getState().setCurrentMessageWrapper(messageWrapper); // Guarda a referência
             return;
         }
         
-        // CASO 2: A resposta é de um PLUGIN ou da G.A.I.A. (Não-streaming).
-        // O `main.js` agora retorna um objeto com `type: 'final_action'`.
         if (result.type === 'final_action') {
             const bubbleText = result.text || "Ação concluída.";
 
             if (result.action === 'suppress_chat_response') {
-                // Se a ação não deve mostrar nada no chat, apenas atualizamos o balão de fala.
                 ui.updateSpeechBubble(bubbleText, false);
             } else if (result.html) {
-                // Se houver conteúdo HTML, nós o adicionamos ao chat.
-                const messageDiv = ui.addMessageToChat(result.html, "assistant", true);
-                ui.finalizeStreamedMessage(messageDiv);
-                // Usamos o texto sem formatação para o balão, se disponível.
+                // Para plugins, passa o HTML diretamente
+                const messageWrapper = ui.addMessageToChat(result.html, "assistant", { isHtml: true });
+                ui.finalizeStreamedMessage(messageWrapper);
                 ui.updateSpeechBubble(result.text || result.html.replace(/<[^>]*>?/gm, ''), false); 
             } else if (result.error) {
-                // Se for uma mensagem de erro.
-                const messageDiv = ui.addMessageToChat(result.error, "assistant", false);
-                ui.finalizeStreamedMessage(messageDiv);
+                const messageWrapper = ui.addMessageToChat(result.error, "assistant");
+                ui.finalizeStreamedMessage(messageWrapper);
                 ui.updateSpeechBubble(result.error, false);
             }
 
-            // A parte MAIS IMPORTANTE: Desbloqueia a UI para respostas FINAIS.
             ui.setInputState(false); 
             ui.showInputSection();
-            return; // Encerra a função aqui.
+            return; 
         }
-        
-        // --- FIM DA LÓGICA DE RESPOSTA REATORADA ---
 
     } catch (error) {
         console.error("Erro ao enviar mensagem para a IA:", error);
-        ui.addMessageToChat("Ocorreu um erro crítico ao processar sua solicitação.", "assistant", false);
+        ui.addMessageToChat("Ocorreu um erro crítico ao processar sua solicitação.", "assistant", { isHtml: false });
         
-        // Garante que a UI seja reativada em caso de erro.
         ui.setInputState(false);
         ui.showInputSection();
     }

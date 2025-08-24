@@ -96,11 +96,6 @@ app.whenReady().then(async () => {
   }
 });
 
-/**
- * Função central que processa um comando de texto, vindo da UI principal ou de fontes externas.
- * @param {object} payload - O objeto contendo os dados, principalmente `userInput`.
- * @param {string} [source='desktop'] - A origem do comando ('desktop' ou 'mobile').
- */
 async function handleCommandProcessing(payload, source = 'desktop') {
     try {
         let { userInput } = payload;
@@ -139,64 +134,41 @@ async function handleCommandProcessing(payload, source = 'desktop') {
 }
 
 
-// --- LÓGICA DO SERVIDOR WEB ---
 function startWebServer() {
     const serverApp = express();
     const httpServer = http.createServer(serverApp);
     io = new Server(httpServer);
-
     const port = 3131;
-    
     serverApp.use(express.json());
-
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // Rotas para servir os arquivos estáticos do cliente móvel
     serverApp.get('/mobile-client', (req, res) => {
         res.sendFile(path.join(__dirname, '..', '..', 'public', 'overlay', 'index.html'));
     });
     serverApp.use('/overlay', express.static(path.join(__dirname, '..', '..', 'public', 'overlay')));
-    // --- FIM DA ALTERAÇÃO ---
-
     serverApp.post('/webhook', async (req, res) => {
         const apiKey = req.headers['x-api-key'];
         if (apiKey !== 'teste') { 
             return res.status(401).send('Acesso não autorizado.');
         }
-
         let userInput = req.body.command;
         if (!userInput) {
             return res.status(400).send('O corpo da requisição precisa conter a chave "command".');
         }
-
-        console.log(`[Servidor Web] Comando recebido do webhook: "${userInput}"`);
-        
         const commandForGaia = userInput.trim().startsWith('/gaia') ? userInput : `/gaia ${userInput}`;
-        
         handleCommandProcessing({ userInput: commandForGaia }, 'mobile');
-
         res.status(200).send({ message: "Comando recebido e sendo processado." });
     });
-    
     io.on('connection', (socket) => {
         console.log('[Socket.io] Um cliente web se conectou!');
-        
-        // --- INÍCIO DA ALTERAÇÃO ---
-        // Ouve por comandos vindos do cliente web
         socket.on('send-command', (userInput) => {
-            console.log(`[Socket.io] Comando recebido do cliente web: "${userInput}"`);
             const commandForGaia = userInput.trim().startsWith('/gaia') ? userInput : `/gaia ${userInput}`;
             handleCommandProcessing({ userInput: commandForGaia }, 'mobile');
         });
-        // --- FIM DA ALTERAÇÃO ---
     });
-
     httpServer.listen(port, '0.0.0.0', () => {
         console.log(`[Servidor Web] Assistente ouvindo em http://localhost:${port}`);
     });
 }
 
-
-// --- LÓGICA DA JANELA MODAL ---
 function createModalWindow(options) {
     if (modalWindow) {
         modalWindow.focus();
@@ -248,6 +220,17 @@ ipcMain.on('modal:close', () => {
         modalWindow.close();
     }
 });
+
+// --- INÍCIO DA ALTERAÇÃO ---
+// Novo listener que recebe o sinal do modal e o retransmite para a janela principal
+ipcMain.on('commands:settings-changed', () => {
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('commands:refresh-quick-actions');
+    }
+});
+// --- FIM DA ALTERAÇÃO ---
+
 ipcMain.on('scribe:resize', (event, { height }) => {
     const liveScribeWindow = windowManager.getLiveScribeWindow();
     if (liveScribeWindow && !liveScribeWindow.isDestroyed()) {
@@ -310,16 +293,7 @@ ipcMain.handle("scribe:get-data", async (event, { meetingId }) => {
   return { meeting, transcripts };
 });
 ipcMain.handle('scribe:analyze-text', async (event, { context, question }) => {
-    const prompt = `
-        Com base nos seguintes trechos de uma transcrição de reunião, responda à pergunta do usuário.
-        Seja conciso e direto. Use markdown para formatar a resposta.
-        **Contexto da Reunião:**
-        ---
-        ${context}
-        ---
-        **Pergunta do Usuário:**
-        ${question}
-    `;
+    const prompt = `Contexto da Reunião:\n---\n${context}\n---\nPergunta: ${question}`;
     const answerText = await aiManager.getCompleteResponse(prompt);
     const answerHtml = await aiManager.formatToHtml(answerText);
     const liveScribeWindow = windowManager.getLiveScribeWindow();
@@ -397,11 +371,12 @@ ipcMain.handle('gaia:get-games', async () => {
 ipcMain.handle('gaia:get-game-logs', async () => {
     return await dbManager.hobbie.getGameLogs();
 });
-ipcMain.handle('commands:get-pinned', async (event, aiModelKey) => {
-    return await dbManager.commands.getPinned(aiModelKey);
+ipcMain.handle('commands:get-settings-for-model', async (event, aiModelKey) => {
+    const settingsMap = await dbManager.commands.getSettingsForModel(aiModelKey);
+    return Object.fromEntries(settingsMap);
 });
-ipcMain.handle('commands:set-pinned', async (event, { aiModelKey, commandsArray }) => {
-    return await dbManager.commands.setPinned(aiModelKey, commandsArray);
+ipcMain.handle('commands:update-command-setting', async (event, { aiModelKey, commandString, settings }) => {
+    return await dbManager.commands.updateCommandSetting(aiModelKey, commandString, settings);
 });
 ipcMain.handle('ai:get-models', () => {
     return aiManager.getAvailableModels();
@@ -419,12 +394,9 @@ ipcMain.handle('ai:set-model', (event, modelKey) => {
     }
     return success;
 });
-
-// --- LÓGICA CENTRAL DE PROCESSAMENTO DE MENSAGENS ---
 ipcMain.handle("call-ai", (event, payload) => {
     return handleCommandProcessing(payload, 'desktop');
 });
-
 async function processPluginResponse(response) {
     if (!response) {
         return { type: 'final_action', html: "O comando não retornou uma resposta válida." };
@@ -449,8 +421,6 @@ async function processPluginResponse(response) {
     const finalHtml = await aiManager.formatToHtml(messageContent);
     return { type: 'final_action', html: finalHtml };
 }
-
-// --- EVENTOS DO CICLO DE VIDA ---
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
 });

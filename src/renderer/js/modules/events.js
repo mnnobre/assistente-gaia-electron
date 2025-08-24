@@ -1,5 +1,5 @@
 // =================================================================================
-// MODULE: EVENT LISTENERS
+// MODULE: EVENT LISTENERS (FINALIZADO COM AÇÕES DE CHAT FLOWBITE)
 // =================================================================================
 
 import * as elements from './elements.js';
@@ -16,9 +16,9 @@ export function setupEventListeners() {
         elements.characterImage.addEventListener("click", ui.showInputSection);
     }
     if (elements.sendButton) elements.sendButton.addEventListener("click", core.sendMessage);
-    if (elements.speechBubble) {
-        elements.speechBubble.addEventListener("mouseenter", () => getState().clearTimeoutId('bubble'));
-        elements.speechBubble.addEventListener("mouseleave", () => ui.scheduleBubbleHide());
+    if (elements.speechBubbleContainer) {
+        elements.speechBubbleContainer.addEventListener("mouseenter", () => getState().clearTimeoutId('bubble'));
+        elements.speechBubbleContainer.addEventListener("mouseleave", () => ui.scheduleBubbleHide());
     }
     
     // --- Auto-hide logic for Chat and Input ---
@@ -31,19 +31,59 @@ export function setupEventListeners() {
         elements.inputSection.addEventListener("mouseleave", () => ui.scheduleInputHidden());
     }
 
+    // --- Quick Action Bar Listener ---
+    const quickActionsBar = document.getElementById('quick-actions-bar');
+    if (quickActionsBar) {
+        quickActionsBar.addEventListener('click', (event) => {
+            const button = event.target.closest('.action-button');
+            if (!button) return;
+            const commandString = button.dataset.commandString;
+            const isDirectAction = button.dataset.isDirectAction === 'true';
+            if (isDirectAction) {
+                window.api.sendMessageToAI({ userInput: commandString });
+            } else {
+                store.getState().setActiveCommandMode(commandString);
+            }
+        });
+    }
 
-    // --- Action Button Listeners ---
+    // --- Chat Action Listeners ---
+    if (elements.chatContainer) {
+        elements.chatContainer.addEventListener('click', (event) => {
+            const copyButton = event.target.closest('.action-copy');
+
+            // Lógica para o botão de COPIAR
+            if (copyButton) {
+                // Encontra o contêiner 'chat' pai mais próximo do botão clicado
+                const messageWrapper = copyButton.closest('.chat');
+                if (messageWrapper) {
+                    const contentDiv = messageWrapper.querySelector('.message-content');
+                    if (contentDiv) {
+                        navigator.clipboard.writeText(contentDiv.innerText).then(() => {
+                            // Feedback visual para o usuário
+                            const originalText = copyButton.textContent;
+                            copyButton.textContent = 'Copiado!';
+                            setTimeout(() => { copyButton.textContent = originalText; }, 2000);
+
+                            // Esconde o dropdown após a ação, desfocando o elemento ativo
+                            if (document.activeElement) document.activeElement.blur();
+                        });
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- Action Button Listeners (Barra de Ferramentas) ---
     if (elements.memoryToggleButton) {
         elements.memoryToggleButton.addEventListener('click', () => {
             const isActive = elements.memoryToggleButton.classList.toggle('active');
             elements.memoryToggleButton.title = `Usar Memória (${isActive ? 'Ativado' : 'Desativado'})`;
         });
     }
-
     if (elements.contextMenuButton) {
         elements.contextMenuButton.addEventListener('click', () => core.handleContextCapture('screen'));
     }
-
     if (elements.thumbnailContainer) {
         elements.thumbnailContainer.addEventListener('click', ui.openContextModal);
     }
@@ -52,13 +92,11 @@ export function setupEventListeners() {
     if (elements.messageInput) {
         elements.messageInput.addEventListener('focus', () => getState().clearTimeoutId('input'));
         elements.messageInput.addEventListener('blur', () => ui.scheduleInputHidden());
-
         elements.messageInput.addEventListener('input', ui.autoResizeTextarea);
         elements.messageInput.addEventListener("input", () => {
             const value = elements.messageInput.value;
             const parts = value.split(" ");
             let newSuggestions = [];
-
             if (value.startsWith("/") && parts.length < 3) {
                 if (parts.length === 1) {
                     const searchTerm = value.substring(1);
@@ -66,19 +104,14 @@ export function setupEventListeners() {
                 } else if (parts.length === 2 && value.endsWith(" ")) {
                     const mainCommand = parts[0];
                     const commandData = getState().commands.find((cmd) => cmd.command === mainCommand);
-                    if (commandData && commandData.subcommands) {
-                        newSuggestions = Object.entries(commandData.subcommands).map(([name, description]) => ({ name, description, type: "subcommand" }));
-                    }
+                    if (commandData && commandData.subcommands) newSuggestions = Object.entries(commandData.subcommands).map(([name, description]) => ({ name, description, type: "subcommand" }));
                 } else if (parts.length === 2 && !value.endsWith(" ")) {
                     const mainCommand = parts[0];
                     const subCommandSearch = parts[1];
                     const commandData = getState().commands.find((cmd) => cmd.command === mainCommand);
-                    if (commandData && commandData.subcommands) {
-                        newSuggestions = Object.entries(commandData.subcommands).filter(([name]) => name.startsWith(subCommandSearch)).map(([name, description]) => ({ name, description, type: "subcommand" }));
-                    }
+                    if (commandData && commandData.subcommands) newSuggestions = Object.entries(commandData.subcommands).filter(([name]) => name.startsWith(subCommandSearch)).map(([name, description]) => ({ name, description, type: "subcommand" }));
                 }
             }
-            
             getState().setSuggestions(newSuggestions);
             ui.renderSuggestions(core.selectSuggestion);
         });
@@ -86,7 +119,6 @@ export function setupEventListeners() {
             if (!elements.autocompleteContainer.classList.contains("hidden")) {
                 const suggestions = getState().currentSuggestions;
                 let currentIndex = getState().selectedSuggestionIndex;
-
                 if (event.key === "ArrowDown") {
                     event.preventDefault();
                     currentIndex = (currentIndex + 1) % suggestions.length;
@@ -97,9 +129,8 @@ export function setupEventListeners() {
                     getState().setSelectedSuggestionIndex(currentIndex);
                 } else if (event.key === "Enter" || event.key === "Tab") {
                     event.preventDefault();
-                    if (currentIndex > -1) {
-                        core.selectSuggestion(currentIndex);
-                    } else { core.sendMessage(); }
+                    if (currentIndex > -1) core.selectSuggestion(currentIndex);
+                    else core.sendMessage();
                 } else if (event.key === "Escape") {
                     ui.hideAutocomplete();
                 }
@@ -121,9 +152,7 @@ export function setupEventListeners() {
     if (elements.miniStopButton) {
         elements.miniStopButton.addEventListener("click", () => {
             getState().setPlayerManuallyStopped(true);
-            if (getState().currentPlaybackState.isPlaying) {
-                window.api.send("control-player-action", "playPause");
-            }
+            if (getState().currentPlaybackState.isPlaying) window.api.send("control-player-action", "playPause");
             window.api.send("player:minimize");
         });
     }
@@ -143,12 +172,8 @@ export function setupEventListeners() {
     }
 
     // --- Botões da UI principal que abrem modais ---
-    if (elements.memoryWindowButton) {
-        elements.memoryWindowButton.addEventListener("click", ui.openMemoryWindow);
-    }
-    if (elements.aiHubButton) {
-        elements.aiHubButton.addEventListener('click', ui.openAiHub);
-    }
+    if (elements.memoryWindowButton) elements.memoryWindowButton.addEventListener("click", ui.openMemoryWindow);
+    if (elements.aiHubButton) elements.aiHubButton.addEventListener('click', ui.openAiHub);
 
     // --- Electron API Listeners (window.api) ---
     if (window.api) {
@@ -162,65 +187,40 @@ export function setupEventListeners() {
             }
         });
         window.api.on("meal-reminder", (message) => { ui.updateSpeechBubble(message, false); });
-        
-        // --- INÍCIO DA ALTERAÇÃO (FASE 9) ---
-        // Listener para as mensagens nostálgicas da G.A.I.A.
-        window.api.on("proactive-memory", (message) => {
-            ui.updateSpeechBubble(message, false);
-        });
-        // --- FIM DA ALTERAÇÃO ---
-
-        window.api.on("playback-state-updated", (newState) => {
-            getState().setPlaybackState(newState || { isPlaying: false });
-        });
-
+        window.api.on("proactive-memory", (message) => { ui.updateSpeechBubble(message, false); });
+        window.api.on("playback-state-updated", (newState) => { getState().setPlaybackState(newState || { isPlaying: false }); });
         window.api.on("list-response", (meetings) => { ui.renderMeetingList(meetings); });
-        
-        window.api.on("pomodoro-show-widget", () => {
-            ui.showPomodoroWidget(true);
-        });
-
-        window.api.on("pomodoro-tick", (data) => {
-            store.getState().setPomodoroData(data);
-        });
+        window.api.on("pomodoro-show-widget", () => { ui.showPomodoroWidget(true); });
+        window.api.on("pomodoro-tick", (data) => { getState().setPomodoroData(data); });
         window.api.on("pomodoro-state-changed", (data) => {
             getState().setPomodoroState(data.state);
-            store.getState().setPomodoroData(data);
+            getState().setPomodoroData(data);
         });
-
         window.api.on('ai-model-changed', (activeModel) => {
             if (activeModel) {
                 ui.updateAiStatus();
                 ui.updateSpeechBubble(`IA alterada para ${activeModel.name}.`, false);
             }
         });
-
-        let currentMessageDiv = null;
+        window.api.on('commands:refresh-quick-actions', ui.renderQuickActions);
+        
         window.api.on('ai-chunk', (chunk) => {
-            if (!currentMessageDiv) {
-                ui.removeTypingIndicator();
-                currentMessageDiv = ui.addMessageToChat("", "assistant");
+            const currentMessageWrapper = getState().currentMessageWrapper;
+            if (currentMessageWrapper) {
+                ui.updateStreamedMessage(currentMessageWrapper, chunk);
             }
-            ui.updateStreamedMessage(currentMessageDiv, chunk);
         });
-
         window.api.on('ai-stream-end', () => {
-            ui.finalizeStreamedMessage(currentMessageDiv);
-            currentMessageDiv = null; 
-             ui.setInputState(false);
+            const currentMessageWrapper = getState().currentMessageWrapper;
+            if (currentMessageWrapper) {
+                ui.finalizeStreamedMessage(currentMessageWrapper);
+                getState().setCurrentMessageWrapper(null); 
+            }
+            ui.setInputState(false);
             ui.showInputSection();
         });
-
-        window.api.on('memory:update-in-main-window', (selectionData) => {
-            store.getState().updateMemorySelection(selectionData);
-        });
-
-        window.api.on('context:attachment-deleted', () => {
-            ui.removeThumbnail();
-        });
-
-        window.api.on('context:do-recapture', (mode) => {
-            core.handleContextCapture(mode);
-        });
+        window.api.on('memory:update-in-main-window', (selectionData) => { getState().updateMemorySelection(selectionData); });
+        window.api.on('context:attachment-deleted', () => { ui.removeThumbnail(); });
+        window.api.on('context:do-recapture', (mode) => { core.handleContextCapture(mode); });
     }
 }

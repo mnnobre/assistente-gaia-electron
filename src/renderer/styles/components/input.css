@@ -1,4 +1,4 @@
-/* /styles/components/input.css (VERSÃO FINAL COM ACTIONS BAR SUPERIOR) */
+/* /styles/components/input.css */
 #input-section {
   position: relative;
   z-index: 101;
@@ -103,7 +103,7 @@
 
 #input-container {
   box-sizing: border-box;
-  position: relative;
+  /* position: relative; foi movido para o index.html */
   height: auto;
   min-height: 80px;
   padding: 16px;
@@ -189,9 +189,50 @@
   padding-left: 10px;
 }
 
-/* --- NOVO ESTILO PARA O ESTADO DE CARREGAMENTO --- */
 #input-container.loading #message-input,
 #input-container.loading #send-button {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* --- INÍCIO DOS NOVOS ESTILOS PARA O MODO COMANDO --- */
+#command-mode-badge {
+    position: absolute;
+    top: -12px; /* Posiciona a pílula para fora do input */
+    left: 16px;
+    background-color: var(--user-bubble-bg);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+}
+
+#command-mode-badge #exit-mode-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 16px; /* Para centralizar o 'x' */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#command-mode-badge #exit-mode-btn:hover {
+    background: rgba(0,0,0,0.3);
+}
+
+/* Quando o modo comando está ativo, adicionamos um padding-top para o texto não ficar atrás da pílula */
+#input-container.command-mode-active #message-input {
+    padding-top: 18px;
 }

@@ -2,8 +2,8 @@
 // MODULE: APPLICATION STORE (Zustand)
 // =================================================================================
 
-import { createStore } from "../../../../node_modules/zustand/esm/vanilla.mjs";
-import { subscribeWithSelector } from "../../../../node_modules/zustand/esm/middleware.mjs";
+import { createStore } from "../vendor/vanilla.mjs";
+import { subscribeWithSelector } from "../vendor/middleware.mjs";
 
 const initialState = {
   chatTimeoutId: null,
@@ -20,8 +20,13 @@ const initialState = {
   currentSuggestions: [],
   selectedSuggestionIndex: -1,
   selectedMemoryContent: new Map(),
-  // --- INÍCIO DA ALTERAÇÃO (FASE 7) ---
-  activeCommandMode: null, // Guarda a string do comando em modo, ex: '/ia var'
+  activeCommandMode: null,
+  currentMessageWrapper: null,
+  // --- INÍCIO DA ALTERAÇÃO ---
+  // O estado relacionado à IA agora é um objeto aninhado
+  ai: {
+    activeModel: null,
+  }
   // --- FIM DA ALTERAÇÃO ---
 };
 
@@ -66,8 +71,12 @@ const storeDefinition = (set, get) => ({
     set({ selectedMemoryContent: newMap });
   },
 
-  // --- INÍCIO DA ALTERAÇÃO (FASE 7) ---
   setActiveCommandMode: (commandString) => set({ activeCommandMode: commandString }),
+
+  // --- INÍCIO DA ALTERAÇÃO ---
+  // Nova ação para definir o modelo de IA ativo no estado
+  setCurrentMessageWrapper: (wrapper) => set({ currentMessageWrapper: wrapper }),
+  setActiveModel: (model) => set((state) => ({ ai: { ...state.ai, activeModel: model } })),
   // --- FIM DA ALTERAÇÃO ---
 
   reset: () => set(initialState),
