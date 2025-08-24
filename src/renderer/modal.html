@@ -1,26 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="night">
 <head>
-    <meta charset="UTF-8">
-    <title>Modal</title>
-    <!-- Carregaremos o estilo que vamos criar a seguir -->
-    <link rel="stylesheet" href="./styles/main.css"> 
+<meta charset="UTF-8">
+<title>Modal</title>
+<link rel="stylesheet" href="./styles/main.css">
+<style>
+/* Estilos específicos do Electron para a funcionalidade da janela */
+.drag-region {
+-webkit-app-region: drag; /* Habilita o arraste da janela */
+}
+.no-drag {
+-webkit-app-region: no-drag; /* Garante que os botões sejam clicáveis */
+}
+</style>
 </head>
 <body>
-    <div id="modal-container">
-        <div id="modal-header">
-            <!-- O título será preenchido pelo JavaScript -->
-            <h2 id="modal-title">Carregando...</h2>
-            <!-- A região de arrastar a janela -->
-            <div class="drag-region"></div>
-            <button id="modal-close-button">&times;</button>
-        </div>
-        <div id="modal-body">
-            <!-- O conteúdo específico (memória, IA, código) será injetado aqui -->
-            <div id="modal-content-host"></div>
+<div id="modal-container" class="flex flex-col h-screen">
+<!-- INÍCIO DA ALTERAÇÃO: Classes do Tailwind e DaisyUI adicionadas aqui -->
+    <div id="modal-header" class="bg-base-200 p-4 flex items-center border-b border-base-300 flex-shrink-0">
+        <h2 id="modal-title" class="text-lg font-bold">Carregando...</h2>
+        
+        <!-- A região de arrastar agora tem a classe para ocupar o espaço -->
+        <div class="drag-region flex-grow h-full"></div>
+        
+        <!-- O botão agora usa as classes do DaisyUI para parecer um botão de janela -->
+        <button id="modal-close-button" class="btn btn-sm btn-circle btn-ghost no-drag">✕</button>
+    </div>
+    <!-- FIM DA ALTERAÇÃO -->
+
+    <div id="modal-body" class="flex-grow overflow-hidden">
+        <div id="modal-content-host" class="overflow-y-auto h-full w-full">
+            <!-- O conteúdo da view será injetado aqui -->
         </div>
     </div>
-    <!-- Script que controla esta janela -->
-    <script type="module" src="./js/modal-renderer.js"></script>
+
+</div>
+<script type="module" src="./js/modal-renderer.js"></script>
 </body>
 </html>

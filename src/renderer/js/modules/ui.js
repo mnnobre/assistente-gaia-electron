@@ -301,9 +301,8 @@ export function scheduleChatHidden() {
     }
 }
 
-// --- INÍCIO DA ALTERAÇÃO (FIX DO CHAT) ---
 function hideSpeechBubble() {
-    const speechBubble = document.getElementById('speech-bubble'); // O elemento agora é o chat-bubble
+    const speechBubble = document.getElementById('speech-bubble');
     if (speechBubble) {
         speechBubble.parentElement.parentElement.classList.add('hidden');
     }
@@ -311,7 +310,7 @@ function hideSpeechBubble() {
 }
 
 export function scheduleBubbleHide() {
-    store.getState().setTimeoutId('bubble', setTimeout(hideSpeechBubble, 60000)); // 1 minuto
+    store.getState().setTimeoutId('bubble', setTimeout(hideSpeechBubble, 60000));
 }
 
 export function updateSpeechBubble(text, isLoading = false) {
@@ -335,7 +334,6 @@ export function updateSpeechBubble(text, isLoading = false) {
         scheduleBubbleHide();
     }
 }
-// --- FIM DA ALTERAÇÃO ---
 
 function updatePomodoroPosition() {
     if (!elements.pomodoroWidget || !elements.chatContainer) return;
@@ -402,7 +400,9 @@ export function openMemoryWindow() {
 }
 
 export function openAiHub() {
-    openModal({ view: 'ai-hub', width: 450, height: 300 });
+    // --- CORREÇÃO DO TAMANHO ---
+    // Aumentamos a altura para acomodar melhor o conteúdo das abas.
+    openModal({ view: 'ai-hub', width: 450, height: 550 });
 }
 
 export function openContextModal() {

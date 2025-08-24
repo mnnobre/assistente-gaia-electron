@@ -1,16 +1,18 @@
-<!-- /js/views/ai-hub-content.html -->
-
-<!-- Estrutura de Abas (Tabs) da daisyUI -->
+<!-- /js/views/ai-hub-content.html (REFATORADO) -->
 <div role="tablist" class="tabs tabs-lifted tabs-lg">
   
   <!-- Aba 1: Modelos -->
   <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Modelos" checked />
   <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
     
-    <div class="ai-hub-section">
-        <h3 class="text-lg font-semibold">Modelo de IA Ativo</h3>
-        <p class="text-sm text-base-content/70 mt-1">Selecione o modelo principal para conversas.</p>
-        <select id="ai-model-select" class="select select-bordered w-full mt-4"></select>
+    <div class="form-control w-full">
+      <label class="label">
+        <span class="label-text text-lg font-semibold">Modelo de IA Ativo</span>
+      </label>
+      <select id="ai-model-select" class="select select-bordered w-full"></select>
+      <label class="label">
+        <span class="label-text-alt">Selecione o modelo principal para conversas.</span>
+      </label>
     </div>
 
   </div>
@@ -19,16 +21,21 @@
   <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Ações Rápidas" />
   <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
     
-    <div class="ai-hub-section">
-        <h3 class="text-lg font-semibold">Ações Rápidas</h3>
-        <p class="text-sm text-base-content/70 mt-1">Fixe comandos e subcomandos para acesso rápido na interface principal.</p>
-        
-        <!-- O container para a lista de comandos será preenchido pelo JS -->
-        <div id="commands-list-container" class="mt-4 space-y-2 max-h-64 overflow-y-auto">
-            <!-- Placeholder de carregamento -->
-            <span class="loading loading-spinner"></span> Carregando comandos...
+    <div class="form-control w-full">
+      <label class="label">
+        <span class="label-text text-lg font-semibold">Ações Rápidas</span>
+      </label>
+      <label class="label pt-0">
+        <span class="label-text-alt">Fixe comandos para acesso rápido na interface principal.</span>
+      </label>
+    </div>
+    
+    <div id="commands-list-container" class="mt-4 space-y-2 max-h-64 overflow-y-auto">
+        <!-- Placeholder de carregamento -->
+        <div class="text-center p-4">
+            <span class="loading loading-spinner"></span>
+            <p>Carregando comandos...</p>
         </div>
-
     </div>
 
   </div>
