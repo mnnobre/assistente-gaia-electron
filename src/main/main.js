@@ -1,6 +1,5 @@
 const { app, ipcMain, BrowserWindow } = require("electron");
 const path = require("path");
-require("dotenv").config();
 
 const express = require('express');
 const http = require('http');
@@ -81,7 +80,15 @@ app.whenReady().then(async () => {
     
     await pluginManager.initializeAll(app, {});
     
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // A inicialização agora é dividida em duas partes
     await aiManager.initializeAI(vectorDBManager);
+    
+    // Carrega os modelos com as chaves salvas no banco
+    const geminiApiKey = await dbManager.settings.get('api_key_gemini');
+    const openaiApiKey = await dbManager.settings.get('api_key_openai');
+    await aiManager.initializeModels({ geminiApiKey, openaiApiKey });
+    // --- FIM DA ALTERAÇÃO ---
 
     const mainWindow = windowManager.createWindow();
     pomodoroManager = new PomodoroManager(mainWindow);
@@ -221,15 +228,12 @@ ipcMain.on('modal:close', () => {
     }
 });
 
-// --- INÍCIO DA ALTERAÇÃO ---
-// Novo listener que recebe o sinal do modal e o retransmite para a janela principal
 ipcMain.on('commands:settings-changed', () => {
     const mainWindow = windowManager.getMainWindow();
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('commands:refresh-quick-actions');
     }
 });
-// --- FIM DA ALTERAÇÃO ---
 
 ipcMain.on('scribe:resize', (event, { height }) => {
     const liveScribeWindow = windowManager.getLiveScribeWindow();
@@ -397,6 +401,33 @@ ipcMain.handle('ai:set-model', (event, modelKey) => {
 ipcMain.handle("call-ai", (event, payload) => {
     return handleCommandProcessing(payload, 'desktop');
 });
+
+ipcMain.handle('settings:get', async (event, key) => {
+    return await dbManager.settings.get(key);
+});
+
+// --- INÍCIO DA ALTERAÇÃO ---
+ipcMain.handle('settings:set', async (event, { key, value }) => {
+    const result = await dbManager.settings.set(key, value);
+    
+    // Após salvar, dispara a re-inicialização dos modelos de IA
+    if (key.startsWith('api_key_')) {
+        await aiManager.reinitializeModels();
+        
+        // Notifica a janela do modal (se estiver aberta) que os modelos foram atualizados
+        if (modalWindow && !modalWindow.isDestroyed()) {
+            modalWindow.webContents.send('settings:models-reinitialized');
+        }
+        // Notifica também a janela principal para atualizar o status da IA
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('ai-model-changed', aiManager.getActiveModel());
+        }
+    }
+    return result;
+});
+// --- FIM DA ALTERAÇÃO ---
+
 async function processPluginResponse(response) {
     if (!response) {
         return { type: 'final_action', html: "O comando não retornou uma resposta válida." };

@@ -58,16 +58,22 @@ contextBridge.exposeInMainWorld('api', {
         updateCommandSetting: (aiModelKey, commandString, settings) => ipcRenderer.invoke('commands:update-command-setting', { aiModelKey, commandString, settings }),
     },
     
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // --- Módulo de Configurações ---
+    settings: {
+        get: (key) => ipcRenderer.invoke('settings:get', key),
+        set: (key, value) => ipcRenderer.invoke('settings:set', { key, value }),
+    },
+    // --- FIM DA ALTERAÇÃO ---
+    
     // --- Função genérica para ENVIAR mensagens One-Way ---
     send: (channel, data) => {
-        // --- INÍCIO DA ALTERAÇÃO ---
         const validChannels = [
             'pomodoro-control', 'control-player-action', 'player:minimize',
             'player:close', 'player:show', 'modal:open', 'modal:close',
             'memory:selection-changed', 'context:delete-attachment',
-            'context:recapture', 'scribe:resize', 'commands:settings-changed' // Canal adicionado
+            'context:recapture', 'scribe:resize', 'commands:settings-changed'
         ];
-        // --- FIM DA ALTERAÇÃO ---
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }
@@ -75,16 +81,14 @@ contextBridge.exposeInMainWorld('api', {
 
     // --- Função genérica para OUVIR canais ---
     on: (channel, callback) => {
-        // --- INÍCIO DA ALTERAÇÃO ---
         const validChannels = [
             'playback-state-updated', 'meal-reminder', 'window-focus-changed', 
             'list-response', 'pomodoro-tick', 'pomodoro-state-changed',
             'pomodoro-show-widget', 'ai-model-changed', 'ai-chunk',
             'ai-stream-end', 'memory:update-in-main-window', 'context:attachment-deleted',
             'context:do-recapture', 'scribe:live-update', 'scribe:analysis-result',
-            'proactive-memory', 'commands:refresh-quick-actions' // Canal adicionado
+            'proactive-memory', 'commands:refresh-quick-actions'
         ];
-        // --- FIM DA ALTERAÇÃO ---
         if (validChannels.includes(channel)) {
             ipcRenderer.on(channel, (event, ...args) => callback(...args));
         }

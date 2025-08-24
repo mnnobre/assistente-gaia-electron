@@ -37,4 +37,64 @@
     </div>
   </div>
 
+  <!-- Aba 3: Configurações -->
+  <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Configurações" />
+  <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 space-y-4">
+    
+    <!-- Campo para a Chave de API do Gemini -->
+    <div class="form-control w-full">
+      <label class="label">
+        <span class="label-text font-semibold">Chave de API do Google Gemini</span>
+      </label>
+      <input type="password" id="gemini-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
+      <label class="label">
+        <span class="label-text-alt">Necessária para os modelos Gemini.</span>
+      </label>
+    </div>
+
+    <!-- Campo para a Chave de API da OpenAI -->
+    <div class="form-control w-full">
+      <label class="label">
+        <span class="label-text font-semibold">Chave de API da OpenAI</span>
+      </label>
+      <input type="password" id="openai-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
+       <label class="label">
+        <span class="label-text-alt">Necessária para os modelos GPT.</span>
+      </label>
+    </div>
+
+    <!-- INÍCIO DA ALTERAÇÃO -->
+    <div class="divider"></div>
+
+    <!-- Campo para a Chave de API do ClickUp -->
+    <div class="form-control w-full">
+      <label class="label">
+        <span class="label-text font-semibold">Chave de API do ClickUp</span>
+      </label>
+      <input type="password" id="clickup-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
+       <label class="label">
+        <span class="label-text-alt">Para sincronização com a Central de Tarefas.</span>
+      </label>
+    </div>
+
+    <!-- Campo para a Chave de API do Clockify -->
+    <div class="form-control w-full">
+      <label class="label">
+        <span class="label-text font-semibold">Chave de API do Clockify</span>
+      </label>
+      <input type="password" id="clockify-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
+       <label class="label">
+        <span class="label-text-alt">Para sincronização de horas da Central de Tarefas.</span>
+      </label>
+    </div>
+    <!-- FIM DA ALTERAÇÃO -->
+
+
+    <!-- Botão de Salvar -->
+    <div class="card-actions justify-end pt-4">
+        <button id="save-api-keys-button" class="btn btn-primary">Salvar Chaves</button>
+    </div>
+    
+  </div>
+
 </div>

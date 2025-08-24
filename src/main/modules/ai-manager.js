@@ -13,26 +13,40 @@ let vectorDBManager;
 let chatContext = [];
 let mainSystemInstruction = "Você é um assistente pessoal prestativo e amigável. Responda de forma concisa e útil.";
 
-async function initializeAI(vectorDBInstance) {
-    vectorDBManager = vectorDBInstance;
-    
-    registerModel('gaia', 'G.A.I.A. (Local)', 'local', null);
-    
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (GEMINI_API_KEY) {
-        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        registerModel('gemini-2.5-flash', 'Google Gemini 2.5 Flash', 'google', genAI);
-        embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
-    } else {
-        console.warn("[AI Manager] Chave da API do Gemini não encontrada.");
+// --- INÍCIO DA ALTERAÇÃO ---
+
+// Esta função agora contém a lógica para carregar os modelos e pode ser chamada a qualquer momento.
+async function initializeModels({ geminiApiKey, openaiApiKey }) {
+    // Limpa modelos antigos, exceto o local, para evitar duplicatas
+    for (const key in aiModels) {
+        if (aiModels[key].provider !== 'local') {
+            delete aiModels[key];
+        }
     }
 
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    if (OPENAI_API_KEY) {
-        const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-        registerModel('gpt-4o-mini', 'OpenAI GPT-4o Mini', 'openai', openai);
+    if (geminiApiKey) {
+        try {
+            const genAI = new GoogleGenerativeAI(geminiApiKey);
+            registerModel('gemini-2.5-flash', 'Google Gemini 2.5 Flash', 'google', genAI);
+            embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+            console.log("[AI Manager] Modelo Gemini inicializado com sucesso.");
+        } catch (e) {
+            console.warn("[AI Manager] Falha ao inicializar o cliente Gemini. A chave de API pode ser inválida.", e.message);
+        }
     } else {
-        console.warn("[AI Manager] Chave da API da OpenAI não encontrada.");
+        console.warn("[AI Manager] Chave da API do Gemini não encontrada nas configurações.");
+    }
+
+    if (openaiApiKey) {
+        try {
+            const openai = new OpenAI({ apiKey: openaiApiKey });
+            registerModel('gpt-4o-mini', 'OpenAI GPT-4o Mini', 'openai', openai);
+            console.log("[AI Manager] Modelo OpenAI inicializado com sucesso.");
+        } catch (e) {
+            console.warn("[AI Manager] Falha ao inicializar o cliente OpenAI. A chave de API pode ser inválida.", e.message);
+        }
+    } else {
+        console.warn("[AI Manager] Chave da API da OpenAI não encontrada nas configurações.");
     }
 
     const savedModelKey = await dbManager.settings.get('active_ai_model');
@@ -43,10 +57,25 @@ async function initializeAI(vectorDBInstance) {
     } else if (firstCloudModelKey) { 
         setActiveModel(firstCloudModelKey);
     } else {
-        console.warn("[AI Manager] NENHUM modelo de IA da nuvem pôde ser inicializado.");
+        console.warn("[AI Manager] NENHUM modelo de IA da nuvem pôde ser inicializado. Verifique suas chaves de API nas configurações.");
         setActiveModel('gaia');
     }
 }
+
+// A inicialização principal agora apenas prepara o terreno.
+async function initializeAI(vectorDBInstance) {
+    vectorDBManager = vectorDBInstance;
+    registerModel('gaia', 'G.A.I.A. (Local)', 'local', null);
+}
+
+// Nova função para ser chamada pelo main.js após salvar as chaves.
+async function reinitializeModels() {
+    const geminiApiKey = await dbManager.settings.get('api_key_gemini');
+    const openaiApiKey = await dbManager.settings.get('api_key_openai');
+    await initializeModels({ geminiApiKey, openaiApiKey });
+}
+// --- FIM DA ALTERAÇÃO ---
+
 
 function registerModel(key, displayName, provider, clientInstance) {
     aiModels[key] = { name: displayName, provider, client: clientInstance };
@@ -85,7 +114,7 @@ async function generateResponse(
 ) {
   const activeModel = aiModels[activeModelKey];
   if (!activeModel || activeModel.provider === 'local' || !mainWindow) {
-    mainWindow.webContents.send("ai-chunk", "Para conversar com o assistente, por favor, selecione um modelo de IA da nuvem (Gemini ou OpenAI).");
+    mainWindow.webContents.send("ai-chunk", "Para conversar com o assistente, por favor, selecione um modelo de IA da nuvem (Gemini ou OpenAI) e configure a chave de API no Hub de IA.");
     mainWindow.webContents.send("ai-stream-end");
     return;
   }
@@ -138,7 +167,7 @@ async function generateResponse(
 
   } catch (error) {
     console.error("[AI Manager] Erro ao gerar resposta em stream:", error);
-    mainWindow.webContents.send("ai-chunk", "Desculpe, ocorreu um erro ao me comunicar com a IA.");
+    mainWindow.webContents.send("ai-chunk", "Desculpe, ocorreu um erro ao me comunicar com a IA. Verifique se sua chave de API está correta nas configurações.");
     mainWindow.webContents.send("ai-stream-end");
   }
 }
@@ -262,6 +291,8 @@ async function formatToHtml(markdownText) {
 }
 module.exports = {
   initializeAI,
+  initializeModels, // Adicionada para uso no main.js
+  reinitializeModels, // Adicionada para ser chamada após salvar
   generateResponse,
   getCompleteResponse,
   clearChatContext,
