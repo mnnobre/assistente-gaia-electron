@@ -1,61 +1,104 @@
-// /modules/todo-manager.js
+// /src/main/modules/todo-manager.js (Com removeList)
 
-function formatTodoList(todos) {
-    if (todos.length === 0) {
-        return "Você não tem nenhuma tarefa pendente.";
-    }
-    let todoList = "### Sua lista de tarefas:\n\n";
-    todos.forEach(todo => {
-        const icon = todo.status === 'done' ? '✅' : '🔲';
-        const taskText = todo.status === 'done' ? `~~${todo.task}~~` : todo.task; 
-        todoList += `* ${icon} **[ID: ${todo.id}]** - ${taskText}\n`;
-    });
-    return todoList;
+/**
+ * Busca todas as listas de tarefas disponíveis.
+ * @param {object} dbManager - A instância do gerenciador de banco de dados.
+ * @returns {Promise<Array>} Uma lista de objetos, cada um contendo { id, name }.
+ */
+async function getLists(dbManager) {
+    return await dbManager.todos.getLists();
 }
 
-async function addTodo(dbManager, task) {
-    if (!task) {
-        return { success: false, message: "Por favor, me diga qual tarefa você quer adicionar." };
+/**
+ * Cria uma nova lista de tarefas.
+ * @param {object} dbManager - A instância do gerenciador de banco de dados.
+ * @param {string} name - O nome da nova lista.
+ * @returns {Promise<number>} O ID da nova lista criada.
+ */
+async function createList(dbManager, name) {
+    if (!name || name.trim() === '') {
+        throw new Error("O nome da lista não pode estar vazio.");
     }
-    await dbManager.todos.add(task);
-    return { success: true, message: `Tarefa "${task}" adicionada com sucesso.` };
+    return await dbManager.todos.createList(name.trim());
 }
 
-async function listTodos(dbManager) {
-    const todos = await dbManager.todos.list();
-    const formattedList = formatTodoList(todos);
-    return { success: true, message: formattedList };
+// --- INÍCIO DA ALTERAÇÃO ---
+/**
+ * Remove uma lista de tarefas e todas as suas tarefas associadas.
+ * @param {object} dbManager - A instância do gerenciador de banco de dados.
+ * @param {number} listId - O ID da lista a ser removida.
+ * @returns {Promise<number>} O número de listas afetadas.
+ */
+async function removeList(dbManager, listId) {
+    if (!listId) {
+        throw new Error("O ID da lista é obrigatório para remoção.");
+    }
+    return await dbManager.todos.deleteList(listId);
+}
+// --- FIM DA ALTERAÇÃO ---
+
+/**
+ * Busca todas as tarefas para uma lista específica.
+ * @param {object} dbManager - A instância do gerenciador de banco de dados.
+ * @param {number} listId - O ID da lista.
+ * @returns {Promise<Array>} Uma lista de tarefas.
+ */
+async function getTasksForList(dbManager, listId) {
+    if (!listId) {
+        throw new Error("É necessário fornecer o ID da lista.");
+    }
+    return await dbManager.todos.getTasksByList(listId);
 }
 
-async function completeTodo(dbManager, id) {
-    if (!id || isNaN(id)) {
-        return { success: false, message: "Por favor, especifique o número (ID) da tarefa a ser concluída." };
+/**
+ * Adiciona uma nova tarefa a uma lista.
+ * @param {object} dbManager - A instância do gerenciador de banco de dados.
+ * @param {number} listId - O ID da lista onde a tarefa será adicionada.
+ * @param {string} task - O texto da tarefa.
+ * @returns {Promise<object>} O objeto da tarefa recém-criada.
+ */
+async function addTask(dbManager, listId, task) {
+    if (!listId || !task || task.trim() === '') {
+        throw new Error("ID da lista e texto da tarefa são obrigatórios.");
     }
-    const changes = await dbManager.todos.update(id, 'done');
-    return { 
-        success: true, 
-        message: changes > 0 
-            ? `Tarefa ${id} marcada como concluída!` 
-            : `Não encontrei nenhuma tarefa com o ID ${id}.` 
-    };
+    const newTaskId = await dbManager.todos.add(listId, task.trim());
+    return await dbManager.todos.getTaskById(newTaskId);
 }
 
-async function removeTodo(dbManager, id) {
-    if (!id || isNaN(id)) {
-        return { success: false, message: "Por favor, especifique o número (ID) da tarefa a ser removida." };
+/**
+ * Atualiza o status de uma tarefa (concluída ou pendente).
+ * @param {object} dbManager - A instância do gerenciador de banco de dados.
+ * @param {number} taskId - O ID da tarefa.
+ * @param {boolean} isDone - True se a tarefa deve ser marcada como 'done', false para 'pending'.
+ * @returns {Promise<number>} O número de linhas afetadas.
+ */
+async function updateTaskStatus(dbManager, taskId, isDone) {
+    if (!taskId) {
+        throw new Error("O ID da tarefa é obrigatório.");
     }
-    const changes = await dbManager.todos.delete(id);
-    return { 
-        success: true, 
-        message: changes > 0 
-            ? `Tarefa ${id} removida.` 
-            : `Não encontrei nenhuma tarefa com o ID ${id}.` 
-    };
+    const newStatus = isDone ? 'done' : 'pending';
+    return await dbManager.todos.update(taskId, newStatus);
+}
+
+/**
+ * Remove uma tarefa permanentemente.
+ * @param {object} dbManager - A instância do gerenciador de banco de dados.
+ * @param {number} taskId - O ID da tarefa a ser removida.
+ * @returns {Promise<number>} O número de linhas afetadas.
+ */
+async function removeTask(dbManager, taskId) {
+    if (!taskId) {
+        throw new Error("O ID da tarefa é obrigatório.");
+    }
+    return await dbManager.todos.delete(taskId);
 }
 
 module.exports = {
-    addTodo,
-    listTodos,
-    completeTodo,
-    removeTodo,
+    getLists,
+    createList,
+    removeList, // Exportamos a nova função
+    getTasksForList,
+    addTask,
+    updateTaskStatus,
+    removeTask,
 };

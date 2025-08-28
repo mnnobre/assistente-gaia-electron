@@ -1,4 +1,4 @@
-// /src/main/modules/window-manager.js
+// /src/main/modules/window-manager.js (Atualizado)
 
 const { BrowserWindow, screen, ipcMain } = require("electron");
 const path = require("path");
@@ -7,6 +7,12 @@ let mainWindow = null;
 let scribeWindow = null;
 let liveScribeWindow = null;
 let currentScribeMeetingId = null;
+
+// --- INÍCIO DA ALTERAÇÃO ---
+// Variável para manter a referência da nossa nova janela do widget
+let todoWindow = null; 
+// --- FIM DA ALTERAÇÃO ---
+
 
 function createWindow() {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -44,6 +50,51 @@ function createWindow() {
 
     return mainWindow;
 }
+
+
+// --- INÍCIO DA ALTERAÇÃO ---
+/**
+ * Cria e gerencia a janela do widget de To-Do.
+ * Se a janela já existir, ela é apenas focada.
+ */
+function createTodoWindow() {
+    if (todoWindow && !todoWindow.isDestroyed()) {
+        todoWindow.focus();
+        return;
+    }
+
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    const winWidth = 320;
+    const winHeight = 450;
+
+    todoWindow = new BrowserWindow({
+        width: winWidth,
+        height: winHeight,
+        x: width - winWidth - 20, // Posição inicial no canto superior direito
+        y: 20,
+        frame: false,          // Janela sem a barra de título padrão
+        transparent: true,     // Fundo transparente para o efeito "glassmorphism"
+        alwaysOnTop: true,     // Fica acima de outras janelas
+        resizable: true,      // Permite redimensionar (opcional)
+        movable: true,         // Permite mover
+        webPreferences: {
+            preload: path.join(__dirname, "..", "..", "preload", "preload.js"),
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+    });
+
+    // Futuramente, este será o caminho para nosso widget.
+    // Por enquanto, podemos usar um placeholder ou criar o arquivo vazio.
+    // O caminho sobe 3 níveis para chegar na raiz do projeto e depois desce.
+    todoWindow.loadFile(path.join(__dirname, "..", "..", "..", "plugins", "todo", "todo.html"));
+
+    todoWindow.on("closed", () => {
+        todoWindow = null;
+    });
+}
+// --- FIM DA ALTERAÇÃO ---
+
 
 function createLiveScribeWindow() {
     if (liveScribeWindow && !liveScribeWindow.isDestroyed()) {
@@ -93,11 +144,9 @@ function createScribeWindow(meetingId) {
         scribeWindow.focus();
         if (currentScribeMeetingId !== meetingId) {
             currentScribeMeetingId = meetingId;
-            // --- INÍCIO DA CORREÇÃO DE CAMINHO ---
             scribeWindow.loadFile(path.join(__dirname, "..", "..", "..", "scribe.html"), {
                 query: { meetingId: meetingId }
             });
-            // --- FIM DA CORREÇÃO DE CAMINHO ---
         }
         return;
     }
@@ -115,11 +164,9 @@ function createScribeWindow(meetingId) {
         },
     });
 
-    // --- INÍCIO DA CORREÇÃO DE CAMINHO ---
     scribeWindow.loadFile(path.join(__dirname, "..", "..", "..", "scribe.html"), {
         query: { meetingId: meetingId }
     });
-    // --- FIM DA CORREÇÃO DE CAMINHO ---
 
     scribeWindow.on("closed", () => {
         scribeWindow = null;
@@ -139,6 +186,9 @@ module.exports = {
     createWindow,
     createScribeWindow,
     createLiveScribeWindow,
+    // --- INÍCIO DA ALTERAÇÃO ---
+    createTodoWindow, // Exportamos a nova função
+    // --- FIM DA ALTERAÇÃO ---
     getMainWindow,
     getLiveScribeWindow,
 };

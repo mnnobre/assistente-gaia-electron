@@ -1,4 +1,4 @@
-// /src/main/main.js (VERSÃO FINAL COM GERENCIAMENTO DE EMPRESAS)
+// /src/main/main.js (Final com handler para remover lista)
 const { app, ipcMain, BrowserWindow } = require("electron");
 const path = require("path");
 
@@ -22,7 +22,7 @@ const windowManager = require("./modules/window-manager.js");
 const vectorDBManager = require("./modules/vector-db-manager.js");
 const contextWatcher = require("./modules/context-watcher.js");
 const integrationManager = require("./modules/integration-manager.js");
-
+const todoManager = require("./modules/todo-manager.js");
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("disable-gpu");
@@ -69,7 +69,10 @@ const actionHandlers = {
     player_search: (payload) => {
         const url = `https://music.youtube.com/search?q=${encodeURIComponent(payload)}`;
         playerManager.loadUrl(url);
-    }
+    },
+    todo_show_widget: () => {
+        windowManager.createTodoWindow();
+    },
 };
 
 
@@ -225,6 +228,34 @@ ipcMain.on('modal:close', () => {
     if (modalWindow) {
         modalWindow.close();
     }
+});
+
+ipcMain.handle('todo:getLists', async () => {
+    return await todoManager.getLists(dbManager);
+});
+
+ipcMain.handle('todo:createList', async (event, name) => {
+    return await todoManager.createList(dbManager, name);
+});
+
+ipcMain.handle('todo:removeList', async (event, listId) => {
+    return await todoManager.removeList(dbManager, listId);
+});
+
+ipcMain.handle('todo:getTasksForList', async (event, listId) => {
+    return await todoManager.getTasksForList(dbManager, listId);
+});
+
+ipcMain.handle('todo:addTask', async (event, { listId, task }) => {
+    return await todoManager.addTask(dbManager, listId, task);
+});
+
+ipcMain.handle('todo:updateTaskStatus', async (event, { taskId, isDone }) => {
+    return await todoManager.updateTaskStatus(dbManager, taskId, isDone);
+});
+
+ipcMain.handle('todo:removeTask', async (event, taskId) => {
+    return await todoManager.removeTask(dbManager, taskId);
 });
 
 ipcMain.on('commands:settings-changed', () => {
@@ -493,7 +524,6 @@ ipcMain.handle('task:syncCommentToClickUp', async (event, { clickupTaskId, local
 
 ipcMain.handle('task:syncTimeToClickUp', async (event, { clickupTaskId, localTaskId, date, startTime, endTime }) => {
     const apiKey = await dbManager.settings.get('api_key_clickup');
-    // Busca o teamId da empresa associada à tarefa local
     const localTask = await dbManager.taskHub.tasks.getById(localTaskId);
     if (!localTask || !localTask.company_id) throw new Error("A tarefa não está associada a uma empresa.");
     const company = await dbManager.taskHub.companies.getById(localTask.company_id);

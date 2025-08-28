@@ -1,0 +1,96 @@
+<!-- /plugins/todo/todo.html (Com Lógica de Accordion) -->
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <title>Widget de Tarefas</title>
+    <link rel="stylesheet" href="../../src/renderer/styles/main.css">
+    <style>
+        :root {
+            --widget-bg: oklch(var(--b1) / 0.6);
+        }
+        html, body {
+            background-color: transparent !important;
+            overflow: hidden;
+            border-radius: 0.75rem;
+        }
+        .widget-container {
+            background-color: var(--widget-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 0.75rem;
+            border: 1px solid oklch(var(--bc) / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .drag-region { -webkit-app-region: drag; }
+        .no-drag { -webkit-app-region: no-drag; }
+
+        /* --- INÍCIO DA LÓGICA DO ACCORDION --- */
+        #lists-panel {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out;
+            padding: 0 0.5rem; /* Começa com padding vertical zero */
+        }
+
+        .lists-expanded #lists-panel {
+            max-height: 150px; /* Altura máxima que o painel pode atingir */
+            opacity: 1;
+            padding: 0.5rem; /* Adiciona padding quando expandido */
+            overflow-y: auto; /* Adiciona scroll se as listas forem muitas */
+        }
+
+        /* Rotaciona a seta do botão quando expandido */
+        .lists-expanded #list-name-btn svg {
+            transform: rotate(180deg);
+        }
+        /* --- FIM DA LÓGICA DO ACCORDION --- */
+
+    </style>
+</head>
+<body class="p-2">
+
+    <div id="widget-container" class="widget-container flex flex-col h-full shadow-xl">
+
+        <!-- Header - Agora apenas o cabeçalho -->
+        <header id="widget-header" class="drag-region p-2 flex items-center justify-between cursor-grab active:cursor-grabbing">
+            <button id="list-name-btn" class="btn btn-ghost btn-sm no-drag">
+                <span id="current-list-name">Carregando...</span>
+                <svg width="12px" height="12px" class="ml-1 transition-transform" viewBox="0 0 16 16" fill="currentColor"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"></path></svg>
+            </button>
+            
+            <div class="widget-controls flex items-center gap-1 no-drag">
+                <button id="toggle-collapse-btn" class="btn btn-ghost btn-xs btn-circle" title="Minimizar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <button id="close-widget-btn" class="btn btn-ghost btn-xs btn-circle" title="Fechar">✕</button>
+            </div>
+        </header>
+
+        <!-- Painel de Listas (antigo dropdown) - Agora é um elemento separado -->
+        <div id="lists-panel">
+            <ul id="lists-dropdown" class="menu p-2 bg-base-300/50 rounded-box w-full">
+                <!-- As listas serão preenchidas pelo JS -->
+            </ul>
+        </div>
+
+        <!-- Corpo (Lista de Tarefas) -->
+        <main id="widget-body" class="flex-grow p-2 overflow-y-auto">
+            <div id="tasks-container" class="space-y-2">
+                <!-- As tarefas serão inseridas aqui pelo JS -->
+            </div>
+        </main>
+
+        <!-- Footer (Input para nova tarefa) -->
+        <footer id="widget-footer" class="p-2">
+            <div class="join w-full">
+                <input id="new-task-input" type="text" placeholder="Adicionar nova tarefa..." class="input input-bordered join-item input-sm w-full focus:outline-none">
+                <button id="add-task-btn" class="btn btn-primary join-item btn-sm">+</button>
+            </div>
+        </footer>
+    </div>
+
+    <script src="todo-renderer.js"></script>
+</body>
+</html>

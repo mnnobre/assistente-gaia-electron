@@ -1,4 +1,4 @@
-// /src/main/modules/database-manager.js (VERSÃO FINAL CORRIGIDA)
+// /src/main/modules/database-manager.js (Atualizado para o Novo To-Do)
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 const path = require("path");
@@ -110,12 +110,28 @@ async function connectAndMigrate(app) {
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS todos (
+            -- --- INÍCIO DA ALTERAÇÃO (Refatoração do To-Do) ---
+            -- Apagamos a tabela antiga de 'todos' se ela existir, para recriá-la com a nova estrutura.
+            -- Isso é seguro pois o módulo estava sem uso.
+            DROP TABLE IF EXISTS todos;
+
+            -- Criamos a tabela para as listas de tarefas.
+            CREATE TABLE IF NOT EXISTS todo_lists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                task TEXT NOT NULL,
-                status TEXT DEFAULT 'pending',
+                name TEXT NOT NULL UNIQUE,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
+
+            -- Recriamos a tabela 'todos' com a referência para a lista (list_id).
+            CREATE TABLE IF NOT EXISTS todos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                list_id INTEGER NOT NULL,
+                task TEXT NOT NULL,
+                status TEXT DEFAULT 'pending', -- 'pending' ou 'done'
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (list_id) REFERENCES todo_lists (id) ON DELETE CASCADE
+            );
+            -- --- FIM DA ALTERAÇÃO ---
 
             CREATE TABLE IF NOT EXISTS memory_sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,7 +151,6 @@ async function connectAndMigrate(app) {
                 FOREIGN KEY (session_id) REFERENCES memory_sessions (id) ON DELETE CASCADE
             );
 
-            -- --- INÍCIO DA CORREÇÃO ---
             CREATE TABLE IF NOT EXISTS companies (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
@@ -143,7 +158,6 @@ async function connectAndMigrate(app) {
                 clickup_team_id TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
-            -- --- FIM DA CORREÇÃO ---
 
             CREATE TABLE IF NOT EXISTS projects (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -179,6 +193,11 @@ async function connectAndMigrate(app) {
                 FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
             );
         `);
+
+        // --- INÍCIO DA ALTERAÇÃO ---
+        // Garante que pelo menos uma lista de tarefas exista por padrão.
+        await db.run("INSERT OR IGNORE INTO todo_lists (id, name) VALUES (1, 'Geral')");
+        // --- FIM DA ALTERAÇÃO ---
 
         dbConnection = db;
         return dbConnection;

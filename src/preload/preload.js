@@ -1,4 +1,4 @@
-// /src/preload/preload.js (VERSÃO FINAL COM NOVAS FUNÇÕES DO TASKHUB)
+// /src/preload/preload.js (Com removeList)
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
@@ -33,7 +33,7 @@ contextBridge.exposeInMainWorld('api', {
         getPinnedTurns: () => ipcRenderer.invoke('memory:get-pinned-turns'),
     },
 
-    // --- Módulo Task Hub (Expandido) ---
+    // --- Módulo Task Hub ---
     taskHub: {
         getCompanies: () => ipcRenderer.invoke('task:get-companies'),
         addCompany: (name) => ipcRenderer.invoke('task:add-company', name),
@@ -41,7 +41,7 @@ contextBridge.exposeInMainWorld('api', {
         addProject: (projectData) => ipcRenderer.invoke('task:add-project', projectData),
         addTask: (taskData) => ipcRenderer.invoke('task:add-task', taskData),
         getTasks: () => ipcRenderer.invoke('task:get-tasks'),
-        getTaskById: (taskId) => ipcRenderer.invoke('task:getTaskById', taskId), // --- NOVO ---
+        getTaskById: (taskId) => ipcRenderer.invoke('task:getTaskById', taskId),
         updateTask: (taskData) => ipcRenderer.invoke('task:update-task', taskData),
         deleteTask: (taskId) => ipcRenderer.invoke('task:delete-task', taskId),
         getWorkLogs: (taskId) => ipcRenderer.invoke('task:get-work-logs', taskId),
@@ -50,10 +50,22 @@ contextBridge.exposeInMainWorld('api', {
         findOrCreateTaskFromClickUp: (clickUpTaskId) => ipcRenderer.invoke('task:findOrCreateTaskFromClickUp', clickUpTaskId),
         syncCommentToClickUp: (data) => ipcRenderer.invoke('task:syncCommentToClickUp', data),
         syncTimeToClickUp: (data) => ipcRenderer.invoke('task:syncTimeToClickUp', data),
-        // Funções do Clockify
         syncClockifyProjects: () => ipcRenderer.invoke('task:syncClockifyProjects'),
-        getClockifyTasksForProject: (projectId) => ipcRenderer.invoke('task:getClockifyTasksForProject', projectId), // --- NOVO ---
+        getClockifyTasksForProject: (projectId) => ipcRenderer.invoke('task:getClockifyTasksForProject', projectId),
         syncToClockify: (logData) => ipcRenderer.invoke('task:syncToClockify', logData)
+    },
+
+    // --- Módulo To-Do ---
+    todo: {
+        getLists: () => ipcRenderer.invoke('todo:getLists'),
+        createList: (name) => ipcRenderer.invoke('todo:createList', name),
+        // --- INÍCIO DA ALTERAÇÃO ---
+        removeList: (listId) => ipcRenderer.invoke('todo:removeList', listId),
+        // --- FIM DA ALTERAÇÃO ---
+        getTasksForList: (listId) => ipcRenderer.invoke('todo:getTasksForList', listId),
+        addTask: (listId, task) => ipcRenderer.invoke('todo:addTask', { listId, task }),
+        updateTaskStatus: (taskId, isDone) => ipcRenderer.invoke('todo:updateTaskStatus', { taskId, isDone }),
+        removeTask: (taskId) => ipcRenderer.invoke('todo:removeTask', taskId),
     },
 
     // --- Módulo G.A.I.A. ---
