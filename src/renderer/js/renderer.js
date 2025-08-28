@@ -1,3 +1,4 @@
+// /src/renderer/js/renderer.js (Refatorado com Bindings)
 // =================================================================================
 // MAIN RENDERER SCRIPT
 // =================================================================================
@@ -5,6 +6,11 @@
 import { store } from './modules/store.js';
 import * as ui from './modules/ui.js';
 import { setupEventListeners } from './modules/events.js';
+// --- INÍCIO DA ALTERAÇÃO ---
+// Importamos a função que inicializa nosso sistema de reatividade.
+import { initializeBindings } from './modules/uiBindings.js';
+// --- FIM DA ALTERAÇÃO ---
+
 
 const commandIcons = {
     '/nota': '📝',
@@ -54,32 +60,9 @@ async function renderQuickActions() {
     }
 }
 
-function updateCommandModeUI() {
-    const { activeCommandMode } = store.getState();
-    const inputContainer = document.getElementById('input-container');
-    const messageInput = document.getElementById('message-input');
-    
-    const existingBadge = document.getElementById('command-mode-badge');
-    if (existingBadge) existingBadge.remove();
-
-    if (activeCommandMode) {
-        inputContainer.classList.add('command-mode-active');
-        const badge = document.createElement('div');
-        badge.id = 'command-mode-badge';
-        badge.innerHTML = `<span>${activeCommandMode}</span><button id="exit-mode-btn">&times;</button>`;
-        inputContainer.prepend(badge);
-
-        messageInput.placeholder = 'Digite o restante do comando...';
-        messageInput.focus();
-
-        document.getElementById('exit-mode-btn').addEventListener('click', () => {
-            store.getState().setActiveCommandMode(null);
-        });
-    } else {
-        inputContainer.classList.remove('command-mode-active');
-        messageInput.placeholder = 'Digite sua mensagem...';
-    }
-}
+// --- INÍCIO DA ALTERAÇÃO ---
+// A função updateCommandModeUI foi movida para ui.js e não é mais necessária aqui.
+// --- FIM DA ALTERAÇÃO ---
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -100,31 +83,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   setupEventListeners();
 
-  store.subscribe(
-    (state) => state.selectedSuggestionIndex,
-    () => ui.updateSuggestionSelection()
-  );
-
-  store.subscribe(
-    (state) => state.currentPlaybackState,
-    () => ui.updateMiniPlayerUI()
-  );
-
-  store.subscribe(
-    (state) => state.currentPomodoroData,
-    (data) => ui.updatePomodoroWidget(data)
-  );
-
-  store.subscribe(
-    (state) => state.activeCommandMode,
-    () => updateCommandModeUI()
-  );
-
   // --- INÍCIO DA ALTERAÇÃO ---
-  // Ouve pelos eventos de mudança de IA e de mudança de configuração
-  // e chama a função para re-renderizar a barra de ações.
-  window.api.on('ai-model-changed', renderQuickActions);
-  window.api.on('commands:refresh-quick-actions', renderQuickActions);
+  // Substituímos todos os 'store.subscribe' individuais por uma única
+  // chamada que configura toda a reatividade da UI.
+  initializeBindings();
   // --- FIM DA ALTERAÇÃO ---
 
+  // Os listeners de eventos da API do Electron que acionam a renderização
+  // permanecem aqui, pois são um ponto de entrada para a aplicação.
+  window.api.on('ai-model-changed', renderQuickActions);
+  window.api.on('commands:refresh-quick-actions', renderQuickActions);
 });

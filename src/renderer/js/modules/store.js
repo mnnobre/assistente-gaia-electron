@@ -1,86 +1,47 @@
+// /src/renderer/js/modules/store.js (Composição Corrigida)
 // =================================================================================
-// MODULE: APPLICATION STORE (Zustand)
+// MODULE: APPLICATION STORE (Zustand Composer)
 // =================================================================================
 
 import { createStore } from "../vendor/vanilla.mjs";
 import { subscribeWithSelector } from "../vendor/middleware.mjs";
 
-const initialState = {
-  chatTimeoutId: null,
-  bubbleTimeoutId: null,
-  inputTimeoutId: null,
-  pomodoroAnimationId: null,
-  hasWindowFocus: true,
-  isPlayerManuallyStopped: false,
-  currentPomodoroState: "stopped",
-  currentPlaybackState: { isPlaying: false },
-  currentPomodoroData: { timeLeft: 0, totalTime: 1, state: 'stopped', mode: 'focus' },
-  commands: [],
-  attachedImageData: null,
-  currentSuggestions: [],
-  selectedSuggestionIndex: -1,
-  selectedMemoryContent: new Map(),
-  activeCommandMode: null,
-  currentMessageWrapper: null,
-  // --- INÍCIO DA ALTERAÇÃO ---
-  // O estado relacionado à IA agora é um objeto aninhado
-  ai: {
-    activeModel: null,
-  }
-  // --- FIM DA ALTERAÇÃO ---
-};
+import { createAiSlice } from "./storeSlices/aiSlice.js";
+import { createCommandSlice } from "./storeSlices/commandSlice.js";
+import { createContextSlice } from "./storeSlices/contextSlice.js";
+import { createPlayerSlice } from "./storeSlices/playerSlice.js";
+import { createPomodoroSlice } from "./storeSlices/pomodoroSlice.js";
+import { createUiSlice } from "./storeSlices/uiSlice.js";
 
-const storeDefinition = (set, get) => ({
-  ...initialState,
-
-  // ACTIONS
-  setCommands: (commands) => set({ commands }),
-  setTimeoutId: (type, id) => {
-    const existingId = get()[`${type}TimeoutId`];
-    if (existingId) clearTimeout(existingId);
-    set({ [`${type}TimeoutId`]: id });
-  },
-  clearTimeoutId: (type) => {
-    const existingId = get()[`${type}TimeoutId`];
-    if (existingId) clearTimeout(existingId);
-    set({ [`${type}TimeoutId`]: null });
-  },
-  setWindowFocus: (hasFocus) => set({ hasWindowFocus: hasFocus }),
-  setPlayerManuallyStopped: (isStopped) => set({ isPlayerManuallyStopped: isStopped }),
-  setPomodoroState: (pomodoroState) => set({ currentPomodoroState: pomodoroState }),
-  setPomodoroData: (data) => set({ currentPomodoroData: data }),
-  setPomodoroAnimationId: (id) => set({ pomodoroAnimationId: id }),
-  setPlaybackState: (playbackState) => set({ currentPlaybackState: playbackState }),
-  attachImage: (imageData) => set({ attachedImageData: imageData }),
-  detachImage: () => set({ attachedImageData: null }),
-  setSuggestions: (suggestions) => set({ currentSuggestions: suggestions, selectedSuggestionIndex: -1 }),
-  clearSuggestions: () => set({ currentSuggestions: [], selectedSuggestionIndex: -1 }),
-  setSelectedSuggestionIndex: (index) => set({ selectedSuggestionIndex: index }),
+// --- INÍCIO DA CORREÇÃO ---
+// A "store definition" agora é a combinação de todos os nossos slices.
+// O padrão `(...args)` passa os argumentos (set, get, api) de forma transparente
+// para cada slice que está sendo criado.
+const storeDefinition = (...args) => ({
+  ...createAiSlice(...args),
+  ...createCommandSlice(...args),
+  ...createContextSlice(...args),
+  ...createPlayerSlice(...args),
+  ...createPomodoroSlice(...args),
+  ...createUiSlice(...args),
   
-  updateMemorySelection: (selectionData) => {
-    const { uniqueId, isChecked, textContent, sender } = selectionData;
-    const senderPrefix = sender === 'user' ? 'Usuário' : 'Assistente';
-    const formattedContent = `${senderPrefix}: "${textContent}"`;
-    
-    const newMap = new Map(get().selectedMemoryContent);
-    if (isChecked) {
-      newMap.set(uniqueId, formattedContent);
-    } else {
-      newMap.delete(uniqueId);
-    }
-    set({ selectedMemoryContent: newMap });
-  },
-
-  setActiveCommandMode: (commandString) => set({ activeCommandMode: commandString }),
-
-  // --- INÍCIO DA ALTERAÇÃO ---
-  // Nova ação para definir o modelo de IA ativo no estado
-  setCurrentMessageWrapper: (wrapper) => set({ currentMessageWrapper: wrapper }),
-  setActiveModel: (model) => set((state) => ({ ai: { ...state.ai, activeModel: model } })),
-  // --- FIM DA ALTERAÇÃO ---
-
-  reset: () => set(initialState),
+  // A ação de reset agora é definida no nível superior
+  reset: () => {}, // Placeholder, será redefinida abaixo
 });
 
+
+// Criamos a store primeiro para obter acesso à função `set` original.
 export const store = createStore(subscribeWithSelector(storeDefinition));
+
+// Capturamos o estado inicial para usá-lo na ação de reset.
+const initialState = store.getState();
+
+// Agora, definimos a ação de reset corretamente, usando o estado inicial capturado.
+store.setState({
+  ...store.getState(),
+  reset: () => store.setState(initialState),
+});
+
+// Finalmente, exportamos a `getState` para conveniência.
 export const getState = store.getState;
+// --- FIM DA CORREÇÃO ---

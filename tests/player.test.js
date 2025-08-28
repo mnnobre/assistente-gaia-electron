@@ -1,74 +1,81 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { JSDOM } from 'jsdom';
+// /tests/player.test.js (Refatorado para Teste Unitário de Slice)
+import { describe, it, expect, beforeEach } from 'vitest';
 
-// CORREÇÃO: Os caminhos agora apontam para a nova estrutura de pastas em /src/renderer/
+// --- INÍCIO DA ALTERAÇÃO ---
+// Importamos o store para controlar o estado, mas o mais importante,
+// importamos nosso seletor para testá-lo diretamente.
 import { store } from '../src/renderer/js/modules/store.js';
-import { setupEventListeners } from '../src/renderer/js/modules/events.js';
-import * as ui from '../src/renderer/js/modules/ui.js';
+import { selectIsMiniPlayerVisible } from '../src/renderer/js/modules/storeSlices/playerSlice.js';
+// --- FIM DA ALTERAÇÃO ---
 
-// Configuração do ambiente JSDOM
-const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
-global.window = dom.window;
-global.document = dom.window.document;
-
+// Não precisamos mais do JSDOM, pois não vamos interagir com a UI.
+// describe('Player Slice Logic', () => { // Poderíamos renomear, mas manteremos por consistência.
 describe('Mini Player Reactivity', () => {
 
-  let apiOnCallback; // Variável para capturar a função de callback do listener
-
   beforeEach(() => {
-    // Reseta o HTML para um estado limpo
-    document.body.innerHTML = '';
-    // Reseta o store
+    // A única coisa que precisamos fazer antes de cada teste é resetar o estado.
     store.getState().reset();
-    // Limpa mocks de execuções anteriores
-    vi.clearAllMocks();
-
-    // Mock da window.api, mas com uma implementação especial para 'on'
-    window.api = {
-      // O espião de 'on' agora captura a função (callback) que é passada para ele.
-      // Isso nos permite simular o Electron enviando um evento.
-      on: vi.fn((channel, callback) => {
-        if (channel === 'playback-state-updated') {
-          apiOnCallback = callback;
-        }
-      }),
-      send: vi.fn(),
-    };
-
-    // Espiona a função de UI que queremos verificar se é chamada reativamente
-    vi.spyOn(ui, 'updateMiniPlayerUI').mockImplementation(() => {});
-
-    // Configura os event listeners
-    setupEventListeners();
   });
 
-  it('should call the setPlaybackState action when a playback-state-updated event is received', () => {
-    // 1. Setup: Espiona a ação que queremos testar
-    vi.spyOn(store.getState(), 'setPlaybackState');
+  // --- INÍCIO DOS NOVOS TESTES ---
 
-    // 2. Ação: Simula o Electron enviando um novo estado de música
+  it('should have a correct initial state', () => {
+    const state = store.getState();
+    expect(state.isPlayerManuallyStopped).toBe(false);
+    expect(state.currentPlaybackState).toEqual({ isPlaying: false });
+  });
+
+  it('should update playback state when setPlaybackState action is called', () => {
     const mockPlaybackState = { title: 'Bohemian Rhapsody', artist: 'Queen', isPlaying: true };
-    apiOnCallback(mockPlaybackState); // Chama o callback capturado
-
-    // 3. Verificação: A ação setPlaybackState foi chamada?
-    expect(store.getState().setPlaybackState).toHaveBeenCalled();
-    // E foi chamada com os dados corretos?
-    expect(store.getState().setPlaybackState).toHaveBeenCalledWith(mockPlaybackState);
-  });
-
-  it('should call updateMiniPlayerUI reactively when currentPlaybackState changes', () => {
-    // 1. Setup: Configura a assinatura (subscribe) para a reatividade
-    store.subscribe(
-      (state) => state.currentPlaybackState,
-      ui.updateMiniPlayerUI
-    );
-
-    // 2. Ação: Modifica diretamente o estado, simulando o que o listener faria
-    const mockPlaybackState = { title: 'Another One Bites the Dust', artist: 'Queen', isPlaying: false };
+    
+    // Ação
     store.getState().setPlaybackState(mockPlaybackState);
 
-    // 3. Verificação: A função de UI foi chamada automaticamente como resultado da mudança de estado?
-    expect(ui.updateMiniPlayerUI).toHaveBeenCalled();
-    expect(ui.updateMiniPlayerUI).toHaveBeenCalledTimes(1);
+    // Verificação
+    expect(store.getState().currentPlaybackState).toEqual(mockPlaybackState);
   });
+  
+  it('should update manually stopped state when setPlayerManuallyStopped action is called', () => {
+    // Ação
+    store.getState().setPlayerManuallyStopped(true);
+
+    // Verificação
+    expect(store.getState().isPlayerManuallyStopped).toBe(true);
+  });
+
+  // Teste crucial para nosso seletor
+  describe('selectIsMiniPlayerVisible selector', () => {
+    it('should return true when a song is playing and not manually stopped', () => {
+      const state = {
+        currentPlaybackState: { title: 'A Kind of Magic', isPlaying: true },
+        isPlayerManuallyStopped: false,
+      };
+      expect(selectIsMiniPlayerVisible(state)).toBe(true);
+    });
+
+    it('should return false when there is no song title', () => {
+      const state = {
+        currentPlaybackState: { title: null, isPlaying: false },
+        isPlayerManuallyStopped: false,
+      };
+      expect(selectIsMiniPlayerVisible(state)).toBe(false);
+    });
+
+    it('should return false when the player was manually stopped, even if a song is playing', () => {
+      const state = {
+        currentPlaybackState: { title: 'The Show Must Go On', isPlaying: true },
+        isPlayerManuallyStopped: true,
+      };
+      expect(selectIsMiniPlayerVisible(state)).toBe(false);
+    });
+
+    it('should return false for all other combinations', () => {
+      const state1 = { currentPlaybackState: {}, isPlayerManuallyStopped: false };
+      const state2 = { currentPlaybackState: {}, isPlayerManuallyStopped: true };
+      
+      expect(selectIsMiniPlayerVisible(state1)).toBe(false);
+      expect(selectIsMiniPlayerVisible(state2)).toBe(false);
+    });
+  });
+  // --- FIM DOS NOVOS TESTES ---
 });

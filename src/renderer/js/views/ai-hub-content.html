@@ -1,4 +1,4 @@
-<!-- /js/views/ai-hub-content.html (REFATORADO PARA A CENTRAL DE COMANDOS) -->
+<!-- /js/views/ai-hub-content.html (VERSÃO COM GERENCIAMENTO DE EMPRESAS) -->
 <div role="tablist" class="tabs tabs-lifted tabs-lg">
   
   <!-- Aba 1: Modelos -->
@@ -27,9 +27,7 @@
       </label>
     </div>
     
-    <!-- O container para a nova tabela -->
     <div id="commands-table-container" class="mt-4 max-h-96 overflow-y-auto">
-        <!-- O JS vai renderizar a tabela aqui -->
         <div class="text-center p-4">
             <span class="loading loading-spinner"></span>
             <p>Carregando comandos...</p>
@@ -41,15 +39,42 @@
   <input type="radio" name="hub_tabs" role="tab" class="tab" aria-label="Configurações" />
   <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 space-y-4">
     
+    <!-- --- INÍCIO DA NOVA SEÇÃO DE EMPRESAS --- -->
+    <div class="divider text-sm m-0">Gerenciamento de Empresas</div>
+    
+    <div id="companies-list" class="space-y-2">
+      <!-- A lista de empresas salvas será renderizada aqui pelo JS -->
+    </div>
+
+    <div id="new-company-form" class="space-y-3 p-4 bg-base-200 rounded-box">
+      <h3 class="font-semibold text-md">Adicionar Nova Empresa</h3>
+      <div class="form-control w-full">
+        <label class="label py-1"><span class="label-text">Nome da Empresa</span></label>
+        <input type="text" id="new-company-name-input" placeholder="Ex: Minha Agência" class="input input-sm input-bordered w-full" />
+      </div>
+      <div class="form-control w-full">
+        <label class="label py-1"><span class="label-text">Workspace ID (Clockify)</span></label>
+        <input type="text" id="new-clockify-workspace-id-input" placeholder="ID do Workspace do Clockify" class="input input-sm input-bordered w-full" />
+      </div>
+      <div class="form-control w-full">
+        <label class="label py-1"><span class="label-text">Team ID (ClickUp)</span></label>
+        <input type="text" id="new-clickup-team-id-input" placeholder="ID numérico do Time do ClickUp" class="input input-sm input-bordered w-full" />
+      </div>
+      <div class="card-actions justify-end">
+        <button id="add-company-btn" class="btn btn-sm btn-primary">Adicionar Empresa</button>
+      </div>
+    </div>
+    <!-- --- FIM DA NOVA SEÇÃO DE EMPRESAS --- -->
+
+
+    <div class="divider text-sm">Chaves de API Globais</div>
+
     <!-- Campo para a Chave de API do Gemini -->
     <div class="form-control w-full">
       <label class="label">
         <span class="label-text font-semibold">Chave de API do Google Gemini</span>
       </label>
       <input type="password" id="gemini-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
-      <label class="label">
-        <span class="label-text-alt">Necessária para os modelos Gemini.</span>
-      </label>
     </div>
 
     <!-- Campo para a Chave de API da OpenAI -->
@@ -58,13 +83,7 @@
         <span class="label-text font-semibold">Chave de API da OpenAI</span>
       </label>
       <input type="password" id="openai-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
-       <label class="label">
-        <span class="label-text-alt">Necessária para os modelos GPT.</span>
-      </label>
     </div>
-
-    <!-- INÍCIO DA ALTERAÇÃO -->
-    <div class="divider"></div>
 
     <!-- Campo para a Chave de API do ClickUp -->
     <div class="form-control w-full">
@@ -72,9 +91,6 @@
         <span class="label-text font-semibold">Chave de API do ClickUp</span>
       </label>
       <input type="password" id="clickup-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
-       <label class="label">
-        <span class="label-text-alt">Para sincronização com a Central de Tarefas.</span>
-      </label>
     </div>
 
     <!-- Campo para a Chave de API do Clockify -->
@@ -83,16 +99,11 @@
         <span class="label-text font-semibold">Chave de API do Clockify</span>
       </label>
       <input type="password" id="clockify-api-key-input" placeholder="Cole sua chave aqui" class="input input-bordered w-full" />
-       <label class="label">
-        <span class="label-text-alt">Para sincronização de horas da Central de Tarefas.</span>
-      </label>
     </div>
-    <!-- FIM DA ALTERAÇÃO -->
-
-
+    
     <!-- Botão de Salvar -->
     <div class="card-actions justify-end pt-4">
-        <button id="save-api-keys-button" class="btn btn-primary">Salvar Chaves</button>
+        <button id="save-api-keys-button" class="btn btn-primary">Salvar Chaves de API</button>
     </div>
     
   </div>

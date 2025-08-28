@@ -1,92 +1,65 @@
-<!-- /plugins/task/task.html (VERSÃO REATORADA COM TAILWIND + DAISYUI) -->
+<!-- /plugins/task/task.html (VERSÃO COM CAMPOS DO CLOCKIFY) -->
 <!DOCTYPE html>
 <html lang="en" data-theme="night">
 <head>
     <meta charset="UTF-8">
     <title>Central de Tarefas</title>
-    <!-- O CSS agora vem do arquivo principal compilado pelo Tailwind -->
     <link rel="stylesheet" href="../../src/renderer/styles/main.css">
 </head>
 <body class="p-4 bg-base-200">
-    <!-- Container para as notificações (Toast) -->
     <div id="toast-container" class="toast toast-top toast-end"></div>
 
     <div class="max-w-4xl mx-auto space-y-6">
         
-        <h1 class="text-3xl font-bold text-center text-primary">Central de Tarefas</h1>
+        <header class="flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-primary">Central de Tarefas</h1>
+            <div class="flex items-center gap-2">
+                <button id="new-task-btn" class="btn btn-ghost btn-sm">Nova Tarefa Manual</button>
+                <button id="sync-clockify-projects-btn" class="btn btn-secondary btn-sm">Sincronizar Clockify</button>
+            </div>
+        </header>
 
-        <!-- Seção de Listagem de Tarefas Recentes -->
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
-                <div class="card-title flex justify-between items-center">
-                    <h2>Tarefas Recentes</h2>
-                    <button id="new-task-btn" class="btn btn-primary btn-sm">Nova Tarefa</button>
-                </div>
+                <h2 class="card-title">Tarefas Recentes</h2>
                 <div id="tasks-list-container" class="space-y-2 max-h-48 overflow-y-auto p-1">
                     <p>Carregando tarefas...</p>
                 </div>
             </div>
         </div>
 
-        <!-- Seção 1: Dados da Tarefa -->
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
-                <h2 id="task-form-title" class="card-title">Nova Tarefa</h2>
+                <h2 id="task-form-title" class="card-title">Buscar Tarefa</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    
-                    <!-- Empresa -->
+                    <label class="form-control w-full md:col-span-2">
+                        <div class="label"><span class="label-text font-semibold">ID da Tarefa do ClickUp:</span></div>
+                        <div class="join w-full">
+                            <input type="text" id="clickup-task-id-input" placeholder="Ex: 86aayu2nh" class="input input-bordered join-item w-full">
+                            <button id="fetch-clickup-task-btn" class="btn btn-primary join-item">Buscar</button>
+                        </div>
+                    </label>
                     <label class="form-control w-full">
                         <div class="label"><span class="label-text">Empresa:</span></div>
-                        <div class="join w-full">
-                            <select id="company-select" class="select select-bordered join-item w-full">
-                                <option value="" disabled selected>-- Selecione uma Empresa --</option>
-                            </select>
-                            <button id="add-company-btn" class="btn join-item" title="Nova Empresa">+</button>
-                        </div>
+                        <select id="company-select" class="select select-bordered w-full" disabled>
+                            <option value="" disabled selected>-- Preenchido Automaticamente --</option>
+                        </select>
                     </label>
-                    <div id="new-company-form" class="hidden form-control w-full md:col-span-2">
-                        <div class="label"><span class="label-text">Nome da Nova Empresa:</span></div>
-                        <div class="join w-full">
-                            <input type="text" id="new-company-name" placeholder="Nome da Empresa" class="input input-bordered join-item w-full">
-                            <button id="save-new-company-btn" class="btn btn-success join-item">Salvar</button>
-                            <button id="cancel-new-company-btn" class="btn btn-error join-item">X</button>
-                        </div>
-                    </div>
-
-                    <!-- Projeto -->
                     <label class="form-control w-full">
                         <div class="label"><span class="label-text">Projeto:</span></div>
-                        <div class="join w-full">
-                            <select id="project-select" class="select select-bordered join-item w-full" disabled>
-                                <option value="" disabled selected>-- Selecione um Projeto --</option>
-                            </select>
-                            <button id="add-project-btn" class="btn join-item" title="Novo Projeto" disabled>+</button>
-                        </div>
+                        <select id="project-select" class="select select-bordered w-full" disabled>
+                            <option value="" disabled selected>-- Preenchido Automaticamente --</option>
+                        </select>
                     </label>
-                    <div id="new-project-form" class="hidden form-control w-full md:col-span-2">
-                        <div class="label"><span class="label-text">Nome do Novo Projeto:</span></div>
-                        <div class="join w-full">
-                            <input type="text" id="new-project-name" placeholder="Nome do Projeto" class="input input-bordered join-item w-full">
-                            <button id="save-new-project-btn" class="btn btn-success join-item">Salvar</button>
-                            <button id="cancel-new-project-btn" class="btn btn-error join-item">X</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Título da Tarefa e URL -->
                     <label class="form-control w-full md:col-span-2">
                         <div class="label"><span class="label-text">Título da Tarefa:</span></div>
-                        <input type="text" id="task-title" placeholder="Ex: Integrar nova API de pagamentos" class="input input-bordered w-full">
+                        <input type="text" id="task-title" placeholder="Aguardando busca..." class="input input-bordered w-full" readonly>
                     </label>
                     <label class="form-control w-full md:col-span-2">
-                        <div class="label"><span class="label-text">URL do ClickUp:</span></div>
-                        <input type="url" id="task-url" placeholder="https://app.clickup.com/t/..." class="input input-bordered w-full">
+                        <div class="label"><span class="label-text">Descrição:</span></div>
+                        <textarea id="task-description" placeholder="Aguardando busca..." class="textarea textarea-bordered w-full" readonly rows="3"></textarea>
                     </label>
-                </div>
-
-                <div class="card-actions justify-end mt-6" id="task-form-actions">
-                    <button id="delete-task-btn" class="btn btn-error" style="display: none;">Excluir</button>
-                    <button id="edit-task-btn" class="btn" style="display: none;">Editar Tarefa</button>
-                    <button id="save-task-btn" class="btn btn-primary">Criar Tarefa</button>
+                    <input type="hidden" id="task-url">
                 </div>
             </div>
         </div>
@@ -96,30 +69,27 @@
         <!-- Seção 2: Registro de Trabalho -->
         <div id="work-log-section" class="card bg-base-100 shadow-xl" style="display: none;">
             <div class="card-body">
-                <h2 class="card-title">Registro de Trabalho do Dia</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <label class="form-control w-full">
-                        <div class="label"><span class="label-text">Data:</span></div>
-                        <input type="date" id="log-date" class="input input-bordered w-full">
-                    </label>
-                    <label class="form-control w-full">
-                        <div class="label"><span class="label-text">Horas Trabalhadas:</span></div>
-                        <input type="text" id="log-hours" placeholder="Ex: 2.5" class="input input-bordered w-full">
-                    </label>
-                </div>
-                <div id="log-generator" class="mt-4 space-y-4">
-                    <h3 class="font-bold">Documentação</h3>
+                <div id="documentation-section" class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="card-title">Documentação (Comentário)</h2>
+                        <button id="sync-comment-clickup-btn" class="btn btn-secondary btn-sm">Enviar Comentário p/ ClickUp</button>
+                    </div>
                     <div id="applicationsContainer" class="space-y-2"></div>
                     <div class="join w-full">
                       <input type="text" id="newAppName" placeholder="Nome da Aplicação" class="input input-bordered join-item w-full">
                       <button id="submitNewApplicationBtn" class="btn join-item">Adicionar Aplicação</button>
                     </div>
-                    <textarea id="logOutput" rows="8" readonly placeholder="Preview do Log gerado..." class="textarea textarea-bordered w-full font-mono text-sm"></textarea>
+                    <textarea id="logOutput" rows="8" placeholder="Gere a documentação aqui..." class="textarea textarea-bordered w-full font-mono text-sm"></textarea>
                 </div>
-                <div class="card-actions justify-end mt-6">
-                    <button id="save-log-db-btn" class="btn btn-success">Salvar Registro no Banco</button>
-                    <button id="sync-clickup-btn" class="btn" disabled>Enviar p/ ClickUp</button>
-                    <button id="sync-clockify-btn" class="btn" disabled>Enviar p/ Clockify</button>
+
+                <div class="divider"></div>
+
+                <div id="time-entry-section" class="space-y-4">
+                    <h2 class="card-title">Entradas de Tempo</h2>
+                    <div id="time-entries-list" class="space-y-4">
+                        <!-- Linhas de tempo serão injetadas aqui pelo JS -->
+                    </div>
+                    <button id="add-time-entry-btn" class="btn btn-ghost btn-sm">+ Adicionar Lançamento</button>
                 </div>
             </div>
         </div>
@@ -128,12 +98,9 @@
         <div id="work-log-history-section" class="card bg-base-100 shadow-xl" style="display: none;">
             <div class="card-body">
                 <h2 class="card-title">Histórico de Logs para esta Tarefa</h2>
-                <div id="work-log-history-container" class="mt-4 max-h-64 overflow-y-auto space-y-3 p-1">
-                    <!-- Logs salvos serão inseridos aqui -->
-                </div>
+                <div id="work-log-history-container" class="mt-4 max-h-64 overflow-y-auto space-y-3 p-1"></div>
             </div>
         </div>
-
     </div>
 
     <script src="task-renderer.js"></script>

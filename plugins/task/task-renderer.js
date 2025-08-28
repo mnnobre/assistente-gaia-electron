@@ -1,69 +1,53 @@
-// /plugins/task/task-renderer.js (VERSÃO AJUSTADA PARA DAISYUI)
+// /plugins/task/task-renderer.js (VERSÃO FINAL COM CASCATA DE DROPDOWNS CORRIGIDA)
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- Seletores de Elementos (sem alterações) ---
+    // --- Seletores de Elementos ---
     const companySelect = document.getElementById('company-select');
-    const addCompanyBtn = document.getElementById('add-company-btn');
     const projectSelect = document.getElementById('project-select');
-    const addProjectBtn = document.getElementById('add-project-btn');
     const taskTitleInput = document.getElementById('task-title');
-    const taskUrlInput = document.getElementById('task-url');
-    const saveTaskBtn = document.getElementById('save-task-btn');
-    const editTaskBtn = document.getElementById('edit-task-btn');
-    const deleteTaskBtn = document.getElementById('delete-task-btn');
-    const newCompanyForm = document.getElementById('new-company-form');
-    const newCompanyNameInput = document.getElementById('new-company-name');
-    const saveNewCompanyBtn = document.getElementById('save-new-company-btn');
-    const cancelNewCompanyBtn = document.getElementById('cancel-new-company-btn');
-    const newProjectForm = document.getElementById('new-project-form');
-    const newProjectNameInput = document.getElementById('new-project-name');
-    const saveNewProjectBtn = document.getElementById('save-new-project-btn');
-    const cancelNewProjectBtn = document.getElementById('cancel-new-project-btn');
-    const workLogSection = document.getElementById('work-log-section');
     const tasksListContainer = document.getElementById('tasks-list-container');
     const newTaskBtn = document.getElementById('new-task-btn');
     const taskFormTitle = document.getElementById('task-form-title');
+    const workLogSection = document.getElementById('work-log-section');
+    const workLogHistorySection = document.getElementById('work-log-history-section');
+    const workLogHistoryContainer = document.getElementById('work-log-history-container');
+    
+    const syncClockifyProjectsBtn = document.getElementById('sync-clockify-projects-btn');
+    const clickupTaskIdInput = document.getElementById('clickup-task-id-input');
+    const fetchClickupTaskBtn = document.getElementById('fetch-clickup-task-btn');
+    const taskDescriptionInput = document.getElementById('task-description');
+    const taskUrlInput = document.getElementById('task-url');
+
+    const syncCommentClickupBtn = document.getElementById('sync-comment-clickup-btn');
+    const timeEntriesList = document.getElementById('time-entries-list');
+    const addTimeEntryBtn = document.getElementById('add-time-entry-btn');
+
     const applicationsContainer = document.getElementById('applicationsContainer');
     const newAppNameInput = document.getElementById('newAppName');
     const submitNewApplicationBtn = document.getElementById('submitNewApplicationBtn');
     const logOutput = document.getElementById('logOutput');
-    const logDateInput = document.getElementById('log-date');
-    const logHoursInput = document.getElementById('log-hours');
-    const saveLogDbBtn = document.getElementById('save-log-db-btn');
-    const workLogHistorySection = document.getElementById('work-log-history-section');
-    const workLogHistoryContainer = document.getElementById('work-log-history-container');
     
-    // --- Variáveis de Estado (sem alterações) ---
+    // --- Variáveis de Estado ---
     let loadedTasks = [];
     let applicationsData = [];
-    let currentTaskId = null;
+    let currentTask = null;
 
     // --- Sistema de Notificações (Toast) ---
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // A função agora gera o HTML esperado pela daisyUI para os toasts.
     function showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
         const alertDiv = document.createElement('div');
-        // Usamos as classes `alert-success` e `alert-error` da daisyUI
         const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
         alertDiv.className = `alert ${alertClass} shadow-lg`;
         alertDiv.innerHTML = `<span>${message}</span>`;
         container.appendChild(alertDiv);
-
-        // Animação de fade out
         setTimeout(() => {
             alertDiv.style.opacity = '0';
             alertDiv.style.transition = 'opacity 0.5s ease-out';
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 500);
+            setTimeout(() => alertDiv.remove(), 500);
         }, 3500);
     }
-    // --- FIM DA ALTERAÇÃO ---
 
-    // --- LÓGICA DO GERADOR DE LOGS ---
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // A lógica foi atualizada para usar os componentes e classes da daisyUI
+    // --- Lógica do Gerador de Documentação ---
     function renderApplications() {
         applicationsContainer.innerHTML = '';
         applicationsData.forEach((app, appIndex) => {
@@ -73,44 +57,15 @@ document.addEventListener('DOMContentLoaded', () => {
             app.modules.forEach((mod, modIndex) => {
                 let modificationsHTML = '';
                 mod.modifications.forEach((item, itemIndex) => {
-                    modificationsHTML += `
-                        <li class="flex justify-between items-center py-1">
-                            <span>• ${item.text}</span>
-                            <button class="btn btn-xs btn-ghost deleteModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" data-item-index="${itemIndex}" title="Excluir Modificação">✕</button>
-                        </li>`;
+                    modificationsHTML += `<li class="flex justify-between items-center py-1"><span>• ${item.text}</span><button class="btn btn-xs btn-ghost deleteModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" data-item-index="${itemIndex}" title="Excluir Modificação">✕</button></li>`;
                 });
-                modulesHTML += `
-                    <div class="ml-4 mt-2">
-                        <div class="flex justify-between items-center">
-                            <strong class="text-sm">Módulo: ${mod.name}</strong>
-                            <button class="btn btn-xs btn-ghost deleteModuleBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" title="Excluir Módulo">✕</button>
-                        </div>
-                        <ul class="list-none pl-2 mt-1">${modificationsHTML}</ul>
-                        <div class="join w-full mt-2">
-                            <input type="text" class="input input-sm input-bordered join-item w-full newModificationInput" placeholder="Item modificado">
-                            <button class="btn btn-sm join-item addModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}">Adicionar</button>
-                        </div>
-                    </div>`;
+                modulesHTML += `<div class="ml-4 mt-2"><div class="flex justify-between items-center"><strong class="text-sm">Módulo: ${mod.name}</strong><button class="btn btn-xs btn-ghost deleteModuleBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}" title="Excluir Módulo">✕</button></div><ul class="list-none pl-2 mt-1">${modificationsHTML}</ul><div class="join w-full mt-2"><input type="text" class="input input-sm input-bordered join-item w-full newModificationInput" placeholder="Item modificado"><button class="btn btn-sm join-item addModificationBtn" data-app-index="${appIndex}" data-mod-index="${modIndex}">Adicionar</button></div></div>`;
             });
-            appDiv.innerHTML = `
-                <input type="radio" name="app-accordion" checked="checked" /> 
-                <div class="collapse-title text-md font-medium flex justify-between items-center">
-                    Aplicação: ${app.name}
-                    <button class="btn btn-xs btn-ghost deleteAppBtn" data-app-index="${appIndex}" title="Excluir Aplicação">✕</button>
-                </div>
-                <div class="collapse-content">
-                    <div class="modulesContainer">${modulesHTML}</div>
-                    <div class="join w-full mt-3">
-                        <input type="text" class="input input-sm input-bordered join-item w-full newModuleNameInput" placeholder="Nome do Novo Módulo">
-                        <button class="btn btn-sm join-item addModuleBtn" data-app-index="${appIndex}">Adicionar Módulo</button>
-                    </div>
-                </div>
-            `;
+            appDiv.innerHTML = `<input type="radio" name="app-accordion" checked="checked" /><div class="collapse-title text-md font-medium flex justify-between items-center">Aplicação: ${app.name}<button class="btn btn-xs btn-ghost deleteAppBtn" data-app-index="${appIndex}" title="Excluir Aplicação">✕</button></div><div class="collapse-content"><div class="modulesContainer">${modulesHTML}</div><div class="join w-full mt-3"><input type="text" class="input input-sm input-bordered join-item w-full newModuleNameInput" placeholder="Nome do Novo Módulo"><button class="btn btn-sm join-item addModuleBtn" data-app-index="${appIndex}">Adicionar Módulo</button></div></div>`;
             applicationsContainer.appendChild(appDiv);
         });
         updateLogPreview();
     }
-    // --- FIM DA ALTERAÇÃO ---
 
     function updateLogPreview() {
         let logText = "Development Log:\n";
@@ -120,12 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
             logText += `${indentUnit}• Application: ${app.name}\n`;
             app.modules.forEach(mod => {
                 if(!mod.name) return;
-                const modPrefix = indentUnit.repeat(2);
-                logText += `${modPrefix}• Module: ${mod.name}\n`;
+                logText += `${indentUnit.repeat(2)}• Module: ${mod.name}\n`;
                 mod.modifications.forEach(item => {
                     if(!item.text) return;
-                    const itemPrefix = indentUnit.repeat(3);
-                    logText += `${itemPrefix}• Modified item: ${item.text}\n`;
+                    logText += `${indentUnit.repeat(3)}• Modified item: ${item.text}\n`;
                 });
             });
             logText += "\n";
@@ -134,114 +87,85 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Funções da UI Principal ---
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // A lógica foi atualizada para usar os componentes e classes da daisyUI
     function renderWorkLogs(logs) {
         workLogHistoryContainer.innerHTML = '';
         if (!logs || logs.length === 0) {
-            workLogHistoryContainer.innerHTML = '<p class="text-sm text-base-content/70">Nenhum registro de trabalho encontrado para esta tarefa.</p>';
+            workLogHistoryContainer.innerHTML = '<p class="text-sm text-base-content/70">Nenhum registro de trabalho encontrado.</p>';
             return;
         }
-
         logs.forEach(log => {
             const entryDiv = document.createElement('div');
-            entryDiv.className = 'p-4 bg-base-200 rounded-lg'; // Usando cores do tema
-
+            entryDiv.className = 'p-4 bg-base-200 rounded-lg';
             const logDate = new Date(log.log_date);
             const userTimezoneOffset = logDate.getTimezoneOffset() * 60000;
             const localDate = new Date(logDate.getTime() + userTimezoneOffset);
             const formattedDate = localDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            
-            entryDiv.innerHTML = `
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-bold text-sm">Data: ${formattedDate}</span>
-                    <div class="badge badge-neutral">${log.hours_worked} horas</div>
-                </div>
-                <pre class="bg-base-300 p-3 rounded-md text-xs whitespace-pre-wrap font-mono">${log.documentation || 'Nenhuma documentação fornecida.'}</pre>
-            `;
+            entryDiv.innerHTML = `<div class="flex justify-between items-center mb-2"><span class="font-bold text-sm">Data: ${formattedDate}</span><div class="badge badge-neutral">${log.hours_worked} horas</div></div><pre class="bg-base-300 p-3 rounded-md text-xs whitespace-pre-wrap font-mono">${log.documentation || 'Nenhuma documentação.'}</pre>`;
             workLogHistoryContainer.appendChild(entryDiv);
         });
     }
-    // --- FIM DA ALTERAÇÃO ---
-
-    function setFormState(isEditing) {
-        companySelect.disabled = !isEditing;
-        projectSelect.disabled = !isEditing;
-        taskTitleInput.disabled = !isEditing;
-        taskUrlInput.disabled = !isEditing;
-        addCompanyBtn.disabled = !isEditing;
-        addProjectBtn.disabled = !isEditing || !companySelect.value;
-    }
 
     function resetTaskForm() {
-        taskFormTitle.textContent = "Nova Tarefa";
-        currentTaskId = null;
+        taskFormTitle.textContent = "Buscar Tarefa";
+        currentTask = null;
         
-        companySelect.value = '';
-        projectSelect.innerHTML = '<option value="" disabled selected>-- Selecione um Projeto --</option>'; // Restaurado o valor padrão
-        taskTitleInput.value = '';
-        taskUrlInput.value = '';
-        
-        setFormState(true); 
+        clickupTaskIdInput.value = '';
+        companySelect.innerHTML = '<option value="" disabled selected>-- Preenchido Automaticamente --</option>';
+        projectSelect.innerHTML = '<option value="" disabled selected>-- Preenchido Automaticamente --</option>';
+        companySelect.disabled = true;
+        projectSelect.disabled = true;
 
-        saveTaskBtn.textContent = 'Criar Tarefa';
-        saveTaskBtn.style.display = 'inline-block';
-        editTaskBtn.style.display = 'none';
-        deleteTaskBtn.style.display = 'none';
+        taskTitleInput.value = '';
+        taskDescriptionInput.value = '';
+        taskUrlInput.value = '';
 
         workLogSection.style.display = 'none';
         workLogHistorySection.style.display = 'none';
-        workLogHistoryContainer.innerHTML = '';
-
-        // --- INÍCIO DA ALTERAÇÃO ---
-        // Remove a classe `active` que a daisyUI usa para destacar itens.
+        
         document.querySelectorAll('.task-item.active').forEach(item => item.classList.remove('active'));
-        // --- FIM DA ALTERAÇÃO ---
+        
         applicationsData = [];
         renderApplications();
+        logOutput.value = '';
+        
+        timeEntriesList.innerHTML = '';
+        addNewTimeEntryRow();
     }
 
-    async function loadTaskIntoForm(taskId) {
-        const taskData = loadedTasks.find(t => t.id === taskId);
-        if (!taskData) return;
-
-        currentTaskId = taskId;
-        taskFormTitle.textContent = `Detalhes: ${taskData.title}`;
+    async function loadTaskIntoForm(task) {
+        currentTask = task;
+        taskFormTitle.textContent = `Detalhes: ${task.title}`;
         
-        await loadCompanies();
-        companySelect.value = taskData.company_id;
-        await loadProjects(taskData.company_id);
-        projectSelect.value = taskData.project_id;
-        taskTitleInput.value = taskData.title;
-        taskUrlInput.value = taskData.clickup_url;
-
-        setFormState(false); 
-
-        saveTaskBtn.style.display = 'none';
-        editTaskBtn.style.display = 'inline-block';
-        deleteTaskBtn.style.display = 'inline-block';
+        clickupTaskIdInput.value = task.clickup_task_id || '';
+        taskTitleInput.value = task.title;
+        taskDescriptionInput.value = task.description || '';
+        taskUrlInput.value = task.clickup_url;
+        
+        companySelect.disabled = false;
+        
+        await loadCompanies(task.company_id, task.project_id);
 
         workLogSection.style.display = 'block';
-        logDateInput.valueAsDate = new Date();
-
-        // --- INÍCIO DA ALTERAÇÃO ---
-        // A lógica de seleção agora usa a classe `active` da daisyUI
-        document.querySelectorAll('.task-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        document.querySelector(`.task-item[data-task-id='${taskId}']`)?.classList.add('active');
-        // --- FIM DA ALTERAÇÃO ---
+        workLogHistorySection.style.display = 'block';
+        
+        document.querySelectorAll('.task-item').forEach(item => item.classList.remove('active'));
+        const taskItemInList = document.querySelector(`.task-item[data-task-id='${task.id}']`);
+        if(taskItemInList) {
+            taskItemInList.classList.add('active');
+        }
         
         applicationsData = [];
         renderApplications();
-
-        workLogHistorySection.style.display = 'block';
+        logOutput.value = '';
+        
+        timeEntriesList.innerHTML = '';
+        addNewTimeEntryRow();
+        
         try {
-            const logs = await window.api.taskHub.getWorkLogs(taskId);
+            const logs = await window.api.taskHub.getWorkLogs(task.id);
             renderWorkLogs(logs);
         } catch(error) {
             console.error("Erro ao carregar histórico de logs:", error);
-            workLogHistoryContainer.innerHTML = '<p>Erro ao carregar histórico.</p>';
         }
     }
 
@@ -250,155 +174,311 @@ document.addEventListener('DOMContentLoaded', () => {
             tasksListContainer.innerHTML = '';
             loadedTasks = await window.api.taskHub.getTasks();
             if (loadedTasks.length === 0) {
-                tasksListContainer.innerHTML = '<p class="text-sm text-base-content/70">Nenhuma tarefa recente encontrada.</p>';
+                tasksListContainer.innerHTML = '<p class="text-sm text-base-content/70">Nenhuma tarefa recente.</p>';
                 return;
             }
             loadedTasks.forEach(task => {
-                // --- INÍCIO DA ALTERAÇÃO ---
-                // A criação do item agora é um link `<a>` com classes da daisyUI
                 const item = document.createElement('a');
                 item.className = 'task-item btn btn-ghost justify-between w-full h-auto py-2 normal-case';
                 item.dataset.taskId = task.id;
-                const companyName = task.company_name || 'N/A';
-                const projectName = task.project_name || 'N/A';
-                item.innerHTML = `
-                    <span class="task-item-title text-left font-normal">${task.title}</span>
-                    <span class="task-item-project badge badge-outline badge-sm">${projectName} / ${companyName}</span>
-                `;
+                item.innerHTML = `<span class="task-item-title text-left font-normal">${task.title}</span><span class="task-item-project badge badge-outline badge-sm">${task.project_name || 'N/A'} / ${task.company_name || 'N/A'}</span>`;
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
-                    loadTaskIntoForm(task.id);
+                    const selectedTask = loadedTasks.find(t => t.id === parseInt(task.id));
+                    if (selectedTask) loadTaskIntoForm(selectedTask);
                 });
                 tasksListContainer.appendChild(item);
-                // --- FIM DA ALTERAÇÃO ---
             });
         } catch (error) {
             console.error("Erro ao carregar tarefas:", error);
-            tasksListContainer.innerHTML = '<p>Erro ao carregar tarefas.</p>';
         }
     }
     
-    async function loadCompanies() {
+    // --- CORREÇÃO --- `loadCompanies` agora gerencia a cascata de carregamento de projetos.
+    async function loadCompanies(companyId = null, projectId = null) {
         try {
-            const currentVal = companySelect.value;
-            companySelect.innerHTML = '<option value="" disabled selected>-- Selecione uma Empresa --</option>';
+            companySelect.innerHTML = '<option value="" disabled>-- Selecione uma Empresa --</option>';
             const companies = await window.api.taskHub.getCompanies();
             companies.forEach(company => {
                 const option = new Option(company.name, company.id);
                 companySelect.appendChild(option);
             });
-            companySelect.value = currentVal;
+
+            let finalCompanyId = companyId;
+            if (!finalCompanyId && companies.length > 0) {
+                finalCompanyId = companies[0].id;
+            }
+
+            if (finalCompanyId) {
+                companySelect.value = finalCompanyId;
+                await loadProjects(finalCompanyId, projectId);
+            }
         } catch (error) {
             console.error("Erro ao carregar empresas:", error);
         }
     }
 
-    async function loadProjects(companyId) {
+    async function loadProjects(companyId, selectedId = null) {
         try {
-            const currentVal = projectSelect.value;
-            projectSelect.innerHTML = '<option value="" disabled selected>-- Selecione um Projeto --</option>';
-            projectSelect.disabled = true;
-            addProjectBtn.disabled = true;
+            projectSelect.innerHTML = '<option value="" disabled>-- Selecione um Projeto --</option>';
+            projectSelect.disabled = true; 
             if (companyId) {
+                projectSelect.disabled = false;
                 const projects = await window.api.taskHub.getProjects(companyId);
                 projects.forEach(project => {
                     const option = new Option(project.name, project.id);
                     projectSelect.appendChild(option);
                 });
-                projectSelect.disabled = false;
-                addProjectBtn.disabled = false;
             }
-            projectSelect.value = currentVal;
+            if (selectedId) {
+                projectSelect.value = selectedId;
+            }
         } catch (error) {
             console.error("Erro ao carregar projetos:", error);
         }
     }
 
-    // --- Lógica de Eventos (maioria sem alterações, pois se baseia em IDs) ---
-    newTaskBtn.addEventListener('click', resetTaskForm);
-    companySelect.addEventListener('change', () => loadProjects(companySelect.value));
-    addCompanyBtn.addEventListener('click', () => { newCompanyForm.classList.remove('hidden'); newCompanyNameInput.focus(); });
-    cancelNewCompanyBtn.addEventListener('click', () => { newCompanyForm.classList.add('hidden'); newCompanyNameInput.value = ''; });
-    saveNewCompanyBtn.addEventListener('click', async () => {
-        const companyName = newCompanyNameInput.value.trim();
-        if (companyName) {
-            try {
-                const newCompanyId = await window.api.taskHub.addCompany(companyName);
-                await loadCompanies();
-                companySelect.value = newCompanyId;
-                companySelect.dispatchEvent(new Event('change')); 
-                cancelNewCompanyBtn.click();
-            } catch (error) {
-                showToast(`Não foi possível adicionar a empresa. Ela já existe?`, 'error');
-            }
-        }
-    });
+    async function loadAndPopulateClockifyTasks(localProjectId, rowElement) {
+        const select = rowElement.querySelector('.clockify-task-select');
+        const clockifyButton = rowElement.querySelector('.sync-clockify-row');
+        if (!select || !clockifyButton) return;
 
-    addProjectBtn.addEventListener('click', () => { newProjectForm.classList.remove('hidden'); newProjectNameInput.focus(); });
-    cancelNewProjectBtn.addEventListener('click', () => { newProjectForm.classList.add('hidden'); newProjectNameInput.value = ''; });
-    saveNewProjectBtn.addEventListener('click', async () => {
-        const projectName = newProjectNameInput.value.trim();
-        const selectedCompanyId = companySelect.value;
-        if (projectName && selectedCompanyId) {
-            try {
-                const newProjectId = await window.api.taskHub.addProject({ name: projectName, companyId: selectedCompanyId });
-                await loadProjects(selectedCompanyId);
-                projectSelect.value = newProjectId;
-                cancelNewProjectBtn.click();
-            } catch (error) {
-                showToast("Não foi possível adicionar o projeto.", 'error');
-            }
-        }
-    });
+        select.disabled = true;
+        select.innerHTML = '<option>Carregando...</option>';
 
-    saveTaskBtn.addEventListener('click', async () => {
-        const taskData = {
-            title: taskTitleInput.value.trim(),
-            clickup_url: taskUrlInput.value.trim(),
-            project_id: projectSelect.value
-        };
-        if (!taskData.title || !taskData.project_id) {
-            showToast("Título da tarefa e Projeto são obrigatórios!", 'error');
-            return;
-        }
         try {
-            if (!currentTaskId) {
-                const newTaskId = await window.api.taskHub.addTask(taskData);
-                showToast(`Tarefa "${taskData.title}" criada com sucesso!`, 'success');
-                await loadAllTasks();
-                loadTaskIntoForm(newTaskId);
+            const clockifyTasks = await window.api.taskHub.getClockifyTasksForProject(localProjectId);
+            select.innerHTML = '<option value="" disabled selected>-- Selecione Categoria --</option>';
+            if (clockifyTasks && clockifyTasks.length > 0) {
+                clockifyTasks.forEach(task => {
+                    const option = new Option(task.name, task.id);
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+                clockifyButton.disabled = false;
             } else {
-                taskData.id = currentTaskId; 
-                await window.api.taskHub.updateTask(taskData);
-                showToast(`Tarefa "${taskData.title}" atualizada com sucesso!`, 'success');
-                await loadAllTasks();
-                loadTaskIntoForm(currentTaskId);
+                select.innerHTML = '<option>Nenhuma categoria encontrada</option>';
             }
         } catch (error) {
-            showToast("Não foi possível salvar. A URL do ClickUp já foi usada?", 'error');
+            console.error('Erro ao carregar categorias do Clockify:', error);
+            select.innerHTML = '<option>Erro ao carregar</option>';
+            showToast(`Erro ao buscar categorias do Clockify: ${error.message}`, 'error');
+        }
+    }
+
+    function addNewTimeEntryRow() {
+        const entryRow = document.createElement('div');
+        entryRow.className = 'p-4 bg-base-200 rounded-lg time-entry-row';
+        entryRow.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end md:col-span-2">
+                    <label class="form-control w-full"><div class="label label-text">Data:</div><input type="date" class="input input-bordered w-full log-date-input"></label>
+                    <label class="form-control w-full"><div class="label label-text">Início:</div><input type="time" class="input input-bordered w-full log-start-time-input"></label>
+                    <label class="form-control w-full"><div class="label label-text">Fim:</div><input type="time" class="input input-bordered w-full log-end-time-input"></label>
+                    <label class="form-control w-full"><div class="label label-text">Total:</div><input type="text" class="input input-bordered w-full log-total-hours-output" readonly placeholder="0.0h"></label>
+                </div>
+                <label class="form-control w-full">
+                    <div class="label label-text">Descrição (Clockify):</div>
+                    <input type="text" class="input input-bordered w-full clockify-description-input" placeholder="O que foi feito?">
+                </label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <label class="form-control w-full">
+                        <div class="label label-text">Categoria (Clockify):</div>
+                        <select class="select select-bordered w-full clockify-task-select" disabled>
+                            <option>Selecione uma tarefa</option>
+                        </select>
+                    </label>
+                    <div class="flex gap-2 justify-end self-end h-12 items-center">
+                        <button class="btn btn-sm btn-secondary sync-clickup-row" title="Enviar para ClickUp">C</button>
+                        <button class="btn btn-sm btn-accent sync-clockify-row" title="Enviar para Clockify" disabled>K</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        timeEntriesList.appendChild(entryRow);
+        const dateInput = entryRow.querySelector('.log-date-input');
+        if (dateInput) dateInput.valueAsDate = new Date();
+
+        if (currentTask && currentTask.clockify_project_id) {
+            loadAndPopulateClockifyTasks(currentTask.project_id, entryRow);
+        }
+    }
+
+    // --- Lógica de Eventos ---
+    newTaskBtn.addEventListener('click', () => {
+        resetTaskForm();
+        companySelect.disabled = false; 
+    });
+    addTimeEntryBtn.addEventListener('click', addNewTimeEntryRow);
+
+    companySelect.addEventListener('change', () => {
+        const selectedCompanyId = companySelect.value;
+        loadProjects(selectedCompanyId);
+    });
+    
+    fetchClickupTaskBtn.addEventListener('click', async () => {
+        const taskId = clickupTaskIdInput.value.trim();
+        if (!taskId) return showToast("Por favor, insira um ID de tarefa do ClickUp.", 'error');
+        
+        fetchClickupTaskBtn.classList.add('loading');
+        try {
+            const taskFromDb = await window.api.taskHub.findOrCreateTaskFromClickUp(taskId);
+            if (taskFromDb) {
+                showToast("Tarefa encontrada e carregada!", 'success');
+                await loadAllTasks();
+                
+                const fullyLoadedTask = loadedTasks.find(t => t.id === taskFromDb.id);
+                
+                loadTaskIntoForm(fullyLoadedTask || taskFromDb);
+            }
+        } catch (error) {
+            showToast(`Erro: ${error.message}`, 'error');
+        } finally {
+            fetchClickupTaskBtn.classList.remove('loading');
         }
     });
 
-    editTaskBtn.addEventListener('click', () => {
-        taskFormTitle.textContent = `Editando: ${taskTitleInput.value}`;
-        setFormState(true); 
-        saveTaskBtn.textContent = 'Salvar Alterações';
-        saveTaskBtn.style.display = 'inline-block';
-        editTaskBtn.style.display = 'none';
-        deleteTaskBtn.style.display = 'none';
+    syncClockifyProjectsBtn.addEventListener('click', async () => {
+        syncClockifyProjectsBtn.classList.add('loading');
+        syncClockifyProjectsBtn.disabled = true;
+        try {
+            const result = await window.api.taskHub.syncClockifyProjects();
+            showToast(`${result.updatedCount} projetos sincronizados!`, 'success');
+            
+            // Recarrega as empresas e a tarefa atual para refletir a sincronização
+            await loadCompanies(currentTask?.company_id, currentTask?.project_id);
+            if (currentTask) {
+                const reloadedTask = await window.api.taskHub.getTaskById(currentTask.id);
+                await loadTaskIntoForm(reloadedTask);
+            }
+        } catch (error) {
+            showToast(`Erro na sincronização: ${error.message}`, 'error');
+        } finally {
+            syncClockifyProjectsBtn.classList.remove('loading');
+            syncClockifyProjectsBtn.disabled = false;
+        }
     });
 
-    deleteTaskBtn.addEventListener('click', async () => {
-        if (!currentTaskId) return;
-        if (confirm(`Tem certeza que deseja excluir a tarefa "${taskTitleInput.value}"? Esta ação não pode ser desfeita.`)) {
+    syncCommentClickupBtn.addEventListener('click', async () => {
+        if (!currentTask || !currentTask.clickup_task_id) {
+            return showToast("Nenhuma tarefa do ClickUp selecionada.", 'error');
+        }
+        const documentation = logOutput.value;
+        if (!documentation.trim()) {
+            return showToast("A documentação não pode estar vazia.", 'error');
+        }
+
+        syncCommentClickupBtn.classList.add('loading');
+        try {
+            await window.api.taskHub.syncCommentToClickUp({ 
+                clickupTaskId: currentTask.clickup_task_id, 
+                localTaskId: currentTask.id,
+                documentation 
+            });
+            showToast("Comentário enviado para o ClickUp e salvo localmente!", 'success');
+            
+            const logs = await window.api.taskHub.getWorkLogs(currentTask.id);
+            renderWorkLogs(logs);
+
+        } catch (error) {
+            console.error("[task-renderer] Erro ao sincronizar comentário:", error);
+            showToast(`Erro no ClickUp: ${error.message}`, 'error');
+        } finally {
+            syncCommentClickupBtn.classList.remove('loading');
+        }
+    });
+
+    timeEntriesList.addEventListener('input', (event) => {
+        const target = event.target;
+        if (target.matches('.log-start-time-input, .log-end-time-input')) {
+            const row = target.closest('.time-entry-row');
+            const startInput = row.querySelector('.log-start-time-input').value;
+            const endInput = row.querySelector('.log-end-time-input').value;
+            const totalOutput = row.querySelector('.log-total-hours-output');
+            if (startInput && endInput) {
+                const start = new Date(`1970-01-01T${startInput}:00`);
+                const end = new Date(`1970-01-01T${endInput}:00`);
+                if (end > start) {
+                    const diffMs = end - start;
+                    const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
+                    totalOutput.value = `${diffHours}h`;
+                } else {
+                    totalOutput.value = 'Inválido';
+                }
+            }
+        }
+    });
+
+    timeEntriesList.addEventListener('click', async (event) => {
+        const clickupTarget = event.target.closest('button.sync-clickup-row');
+        const clockifyTarget = event.target.closest('button.sync-clockify-row');
+
+        if (clickupTarget && !clickupTarget.disabled && currentTask) {
+            const row = clickupTarget.closest('.time-entry-row');
+            const date = row.querySelector('.log-date-input').value;
+            const startTime = row.querySelector('.log-start-time-input').value;
+            const endTime = row.querySelector('.log-end-time-input').value;
+
+            if (!date || !startTime || !endTime) {
+                return showToast("Preencha data, início e fim para o ClickUp.", "error");
+            }
+
+            clickupTarget.classList.add('loading');
             try {
-                await window.api.taskHub.deleteTask(currentTaskId);
-                showToast("Tarefa excluída com sucesso!", 'success');
-                resetTaskForm();
-                await loadAllTasks();
+                await window.api.taskHub.syncTimeToClickUp({ 
+                    clickupTaskId: currentTask.clickup_task_id,
+                    localTaskId: currentTask.id,
+                    date, 
+                    startTime, 
+                    endTime 
+                });
+                showToast("Tempo enviado para o ClickUp e salvo!", "success");
+                const logs = await window.api.taskHub.getWorkLogs(currentTask.id);
+                renderWorkLogs(logs);
+                clickupTarget.classList.remove('btn-secondary');
+                clickupTarget.classList.add('btn-success');
+                clickupTarget.disabled = true;
             } catch (error) {
-                console.error("Erro ao excluir tarefa:", error);
-                showToast("Não foi possível excluir a tarefa.", 'error');
+                showToast(`Erro no ClickUp: ${error.message}`, "error");
+            } finally {
+                clickupTarget.classList.remove('loading');
+            }
+        }
+
+        if (clockifyTarget && !clockifyTarget.disabled && currentTask) {
+            const row = clockifyTarget.closest('.time-entry-row');
+            const date = row.querySelector('.log-date-input').value;
+            const startTime = row.querySelector('.log-start-time-input').value;
+            const endTime = row.querySelector('.log-end-time-input').value;
+            const clockifyTaskId = row.querySelector('.clockify-task-select').value;
+            const description = row.querySelector('.clockify-description-input').value;
+
+            if (!date || !startTime || !endTime || !clockifyTaskId) {
+                return showToast("Preencha todos os campos para o Clockify.", "error");
+            }
+
+            clockifyTarget.classList.add('loading');
+            try {
+                await window.api.taskHub.syncToClockify({
+                    localTaskId: currentTask.id,
+                    date,
+                    startTime,
+                    endTime,
+                    description,
+                    clockifyTaskId,
+                    clickupTaskUrl: currentTask.clickup_url
+                });
+
+                showToast("Tempo enviado para o Clockify e salvo!", "success");
+                const logs = await window.api.taskHub.getWorkLogs(currentTask.id);
+                renderWorkLogs(logs);
+                clockifyTarget.classList.remove('btn-accent');
+                clockifyTarget.classList.add('btn-success');
+                clockifyTarget.disabled = true;
+            } catch (error) {
+                showToast(`Erro no Clockify: ${error.message}`, "error");
+            } finally {
+                clockifyTarget.classList.remove('loading');
             }
         }
     });
@@ -417,71 +497,26 @@ document.addEventListener('DOMContentLoaded', () => {
     applicationsContainer.addEventListener('click', (event) => {
         const target = event.target.closest('button');
         if (!target) return;
-
-        const appIndex = parseInt(target.dataset.appIndex);
-        const modIndex = parseInt(target.dataset.modIndex);
-        const itemIndex = parseInt(target.dataset.itemIndex);
-
+        const appIndex = parseInt(target.dataset.appIndex), modIndex = parseInt(target.dataset.modIndex), itemIndex = parseInt(target.dataset.itemIndex);
         if (target.classList.contains('addModuleBtn')) {
-            const moduleNameInput = target.previousElementSibling;
-            const moduleName = moduleNameInput.value.trim();
-            if (moduleName) {
-                applicationsData[appIndex].modules.push({ name: moduleName, modifications: [] });
-                renderApplications();
-            } else { showToast("O nome do Módulo é obrigatório.", 'error'); }
+            const moduleName = target.previousElementSibling.value.trim();
+            if (moduleName) applicationsData[appIndex].modules.push({ name: moduleName, modifications: [] });
         } else if (target.classList.contains('addModificationBtn')) {
-            const modificationInput = target.previousElementSibling;
-            const modificationText = modificationInput.value.trim();
-            if (modificationText) {
-                applicationsData[appIndex].modules[modIndex].modifications.push({ text: modificationText });
-                renderApplications();
-            } else { showToast("A descrição da modificação é obrigatória.", 'error'); }
-        } else if (target.classList.contains('deleteAppBtn')) {
-            applicationsData.splice(appIndex, 1);
-            renderApplications();
-        } else if (target.classList.contains('deleteModuleBtn')) {
-            applicationsData[appIndex].modules.splice(modIndex, 1);
-            renderApplications();
-        } else if (target.classList.contains('deleteModificationBtn')) {
-            applicationsData[appIndex].modules[modIndex].modifications.splice(itemIndex, 1);
-            renderApplications();
-        }
+            const modificationText = target.previousElementSibling.value.trim();
+            if (modificationText) applicationsData[appIndex].modules[modIndex].modifications.push({ text: modificationText });
+        } else if (target.classList.contains('deleteAppBtn')) applicationsData.splice(appIndex, 1);
+        else if (target.classList.contains('deleteModuleBtn')) applicationsData[appIndex].modules.splice(modIndex, 1);
+        else if (target.classList.contains('deleteModificationBtn')) applicationsData[appIndex].modules[modIndex].modifications.splice(itemIndex, 1);
+        renderApplications();
     });
     
-    saveLogDbBtn.addEventListener('click', async () => {
-        if (!currentTaskId) {
-            showToast("Nenhuma tarefa selecionada para adicionar o registro.", 'error');
-            return;
-        }
-        const logData = {
-            taskId: currentTaskId,
-            documentation: logOutput.value,
-            hours: parseFloat(logHoursInput.value.replace(',', '.')) || 0,
-            date: logDateInput.value
-        };
-        if (!logData.date || logData.hours <= 0) {
-            showToast("A data e as horas trabalhadas são obrigatórias.", 'error');
-            return;
-        }
-        try {
-            await window.api.taskHub.addWorkLog(logData);
-            showToast("Registro de trabalho salvo com sucesso!", 'success');
-            applicationsData = [];
-            renderApplications();
-            logHoursInput.value = '';
-            const updatedLogs = await window.api.taskHub.getWorkLogs(currentTaskId);
-            renderWorkLogs(updatedLogs);
-        } catch (error) {
-            console.error("Erro ao salvar registro de trabalho:", error);
-            showToast("Não foi possível salvar o registro de trabalho.", 'error');
-        }
-    });
-    
-    // --- Inicialização ---
+    // --- CORREÇÃO ---
+    // A função initialize agora chama `loadCompanies` primeiro para garantir
+    // que a cascata seja acionada na carga inicial.
     async function initialize() {
-        await loadCompanies();
         await loadAllTasks();
         resetTaskForm();
+        await loadCompanies(); 
     }
     initialize();
 });

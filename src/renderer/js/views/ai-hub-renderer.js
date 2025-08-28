@@ -1,14 +1,7 @@
-// /js/views/ai-hub-renderer.js (FINALIZADO COM RECARGA DINÂMICA)
+// /js/views/ai-hub-renderer.js (VERSÃO FINAL COM GERENCIAMENTO DE EMPRESAS)
 
-// Comandos que, por natureza, não precisam de argumentos e sempre serão de ação direta.
 const INTRINSICALLY_DIRECT_COMMANDS = new Set(['/task', '/dashboard']);
 
-/**
- * Renderiza a tabela de gerenciamento de comandos com toggles.
- * @param {HTMLElement} container - O elemento onde a tabela será renderizada.
- * @param {Array<object>} allCommands - A lista completa de comandos do sistema.
- * @param {Map<string, object>} commandSettings - Um Map com as configurações salvas.
- */
 function renderCommandsTable(container, allCommands, commandSettings) {
     container.innerHTML = ''; 
 
@@ -78,6 +71,38 @@ function renderCommandsTable(container, allCommands, commandSettings) {
     container.appendChild(table);
 }
 
+// --- INÍCIO DA NOVA SEÇÃO ---
+/**
+ * Renderiza a lista de empresas salvas no container apropriado.
+ * @param {HTMLElement} container - O elemento que hospedará a lista.
+ */
+async function renderCompaniesList(container) {
+    const companies = await window.api.taskHub.getCompanies();
+    container.innerHTML = ''; // Limpa a lista antes de renderizar
+
+    if (companies.length === 0) {
+        container.innerHTML = '<p class="text-xs text-center opacity-60">Nenhuma empresa adicionada ainda.</p>';
+        return;
+    }
+
+    companies.forEach(company => {
+        const companyDiv = document.createElement('div');
+        companyDiv.className = 'p-3 bg-base-300 rounded-md text-sm';
+        companyDiv.innerHTML = `
+            <div class="flex justify-between items-center">
+                <strong class="font-semibold">${company.name}</strong>
+                <button class="btn btn-xs btn-ghost" data-company-id="${company.id}">🗑️</button>
+            </div>
+            <div class="text-xs opacity-70 mt-1">
+                <p>Clockify WS ID: ${company.clockify_workspace_id || 'Não definido'}</p>
+                <p>ClickUp Team ID: ${company.clickup_team_id || 'Não definido'}</p>
+            </div>
+        `;
+        container.appendChild(companyDiv);
+    });
+}
+// --- FIM DA NOVA SEÇÃO ---
+
 
 export async function initialize() {
     // --- Seletores de Elementos ---
@@ -89,7 +114,15 @@ export async function initialize() {
     const clickupApiKeyInput = document.getElementById("clickup-api-key-input");
     const clockifyApiKeyInput = document.getElementById("clockify-api-key-input");
     
-    if (!aiModelSelect || !commandsContainer || !geminiApiKeyInput || !openaiApiKeyInput || !saveApiKeysButton || !clickupApiKeyInput || !clockifyApiKeyInput) return;
+    // --- INÍCIO DA ALTERAÇÃO ---
+    const companiesListContainer = document.getElementById("companies-list");
+    const newCompanyNameInput = document.getElementById("new-company-name-input");
+    const newClockifyIdInput = document.getElementById("new-clockify-workspace-id-input");
+    const newClickupIdInput = document.getElementById("new-clickup-team-id-input");
+    const addCompanyBtn = document.getElementById("add-company-btn");
+    
+    if (!aiModelSelect || !commandsContainer || !geminiApiKeyInput || !openaiApiKeyInput || !saveApiKeysButton || !clickupApiKeyInput || !clockifyApiKeyInput || !companiesListContainer || !addCompanyBtn) return;
+    // --- FIM DA ALTERAÇÃO ---
 
     let activeModelKey = null;
 
@@ -110,12 +143,15 @@ export async function initialize() {
         renderCommandsTable(commandsContainer, allCommands, commandSettingsMap);
     }
     
-    async function loadApiKeys() {
+    // --- FUNÇÃO ATUALIZADA ---
+    async function loadInitialData() {
+        // Carrega as chaves de API globais e a lista de empresas em paralelo
         const [geminiKey, openaiKey, clickupKey, clockifyKey] = await Promise.all([
             window.api.settings.get('api_key_gemini'),
             window.api.settings.get('api_key_openai'),
             window.api.settings.get('api_key_clickup'),
-            window.api.settings.get('api_key_clockify')
+            window.api.settings.get('api_key_clockify'),
+            renderCompaniesList(companiesListContainer) // Carrega e renderiza a lista de empresas
         ]);
 
         if (geminiKey) geminiApiKeyInput.value = geminiKey;
@@ -124,7 +160,6 @@ export async function initialize() {
         if (clockifyKey) clockifyApiKeyInput.value = clockifyKey;
     }
     
-    // --- INÍCIO DA ALTERAÇÃO ---
     async function loadModels() {
         const models = await window.api.ai.getModels();
         const activeModel = await window.api.ai.getActiveModel();
@@ -139,15 +174,13 @@ export async function initialize() {
             aiModelSelect.value = activeModel.key;
         }
     }
-    // --- FIM DA ALTERAÇÃO ---
 
     saveApiKeysButton.addEventListener('click', async () => {
         const geminiKey = geminiApiKeyInput.value.trim();
         const openaiKey = openaiApiKeyInput.value.trim();
         const clickupKey = clickupApiKeyInput.value.trim();
         const clockifyKey = clockifyApiKeyInput.value.trim();
-
-        // Salva todas as chaves em paralelo. A lógica no main.js vai re-inicializar os modelos.
+        
         await Promise.all([
             window.api.settings.set('api_key_gemini', geminiKey),
             window.api.settings.set('api_key_openai', openaiKey),
@@ -155,7 +188,6 @@ export async function initialize() {
             window.api.settings.set('api_key_clockify', clockifyKey)
         ]);
 
-        // Feedback visual para o usuário
         const originalText = saveApiKeysButton.textContent;
         saveApiKeysButton.textContent = 'Salvo!';
         saveApiKeysButton.classList.add('btn-success');
@@ -163,6 +195,32 @@ export async function initialize() {
             saveApiKeysButton.textContent = originalText;
             saveApiKeysButton.classList.remove('btn-success');
         }, 2000);
+    });
+
+    // --- NOVO EVENT LISTENER ---
+    addCompanyBtn.addEventListener('click', async () => {
+        const name = newCompanyNameInput.value.trim();
+        const clockifyId = newClockifyIdInput.value.trim();
+        const clickupId = newClickupIdInput.value.trim();
+
+        if (!name || !clockifyId || !clickupId) {
+            // Futuramente, usar um sistema de toast/notificação aqui
+            alert("Por favor, preencha todos os campos da empresa.");
+            return;
+        }
+
+        try {
+            await window.api.taskHub.addCompany({ name, clockify_workspace_id: clockifyId, clickup_team_id: clickupId });
+            // Limpa os campos após o sucesso
+            newCompanyNameInput.value = '';
+            newClockifyIdInput.value = '';
+            newClickupIdInput.value = '';
+            // Recarrega a lista para mostrar a nova empresa
+            await renderCompaniesList(companiesListContainer);
+        } catch (error) {
+            console.error("Erro ao adicionar empresa:", error);
+            alert(`Falha ao adicionar empresa: ${error.message}`);
+        }
     });
     
     aiModelSelect.addEventListener('change', async (e) => {
@@ -187,18 +245,14 @@ export async function initialize() {
         }
     });
     
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // Adiciona o listener para o evento de re-inicialização
     window.api.on('settings:models-reinitialized', () => {
         console.log("Modelos re-inicializados. Atualizando o dropdown...");
         loadModels();
     });
 
-    // Roda todas as funções de carregamento iniciais
     await Promise.all([
         loadCommandSettings(),
-        loadApiKeys(),
+        loadInitialData(),
         loadModels()
     ]);
-    // --- FIM DA ALTERAÇÃO ---
 }

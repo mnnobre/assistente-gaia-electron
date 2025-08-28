@@ -1,4 +1,24 @@
-// /js/views/memory-renderer.js
+// /js/views/memory-renderer.js (Otimizado com Debounce)
+
+// --- INÍCIO DA ALTERAÇÃO ---
+/**
+ * Função utilitária de Debounce.
+ * Cria e retorna uma nova função que, quando chamada, adia a execução de `func`
+ * até que `delay` milissegundos tenham se passado sem que a função seja chamada novamente.
+ * @param {Function} func - A função a ser "debatida".
+ * @param {number} delay - O tempo de espera em milissegundos.
+ * @returns {Function} - A nova função com debounce.
+ */
+function debounce(func, delay = 300) {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+}
+// --- FIM DA ALTERAÇÃO ---
 
 // --- Variáveis de estado e seletores de elementos do modal ---
 let memorySessionsList, memorySearchInput, showPinnedButton, backToSessionsButton;
@@ -217,12 +237,10 @@ function handleCheckboxChange(checkbox) {
 // --- Função de Inicialização ---
 
 export function initialize() {
-    // Lê os dados da seleção inicial passados pela URL
     const urlParams = new URLSearchParams(window.location.search);
     const initialSelectionJSON = urlParams.get('initialSelection');
     if (initialSelectionJSON) {
         try {
-            // Converte a string JSON de volta para um array e depois para um Set para buscas rápidas
             initialSelectedIds = new Set(JSON.parse(initialSelectionJSON));
         } catch (e) {
             console.error("Falha ao analisar a seleção inicial de memória:", e);
@@ -247,17 +265,28 @@ export function initialize() {
         renderMemorySessions();
     });
 
-    memorySearchInput.addEventListener('input', async (e) => {
-        const query = e.target.value;
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // Criamos a função de busca que será "debatida".
+    const performSearch = async (query) => {
         if (query.length > 2) {
             backToSessionsButton.style.display = 'block';
+            memorySessionsList.innerHTML = "<p>Buscando...</p>"; // Feedback imediato
             const results = await window.api.memory.search(query);
             renderSearchResults(results);
         } else if (query.length === 0) {
             backToSessionsButton.style.display = 'none';
             await renderMemorySessions();
         }
+    };
+    
+    // Criamos a versão com debounce da nossa função de busca.
+    const debouncedSearch = debounce(performSearch, 400); // 400ms de delay
+
+    // O listener agora chama a versão com debounce.
+    memorySearchInput.addEventListener('input', (e) => {
+        debouncedSearch(e.target.value);
     });
+    // --- FIM DA ALTERAÇÃO ---
 
     memorySessionsList.addEventListener('click', (e) => {
         const pinButton = e.target.closest('.pin-button');

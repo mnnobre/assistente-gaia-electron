@@ -1,4 +1,4 @@
-// /src/main/modules/database-manager.js (REFATORADO)
+// /src/main/modules/database-manager.js (VERSÃO FINAL CORRIGIDA)
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 const path = require("path");
@@ -23,8 +23,13 @@ async function connectAndMigrate(app) {
 
         await db.exec(`PRAGMA foreign_keys = ON;`);
         
-        // --- INÍCIO DA ALTERAÇÃO: Nova tabela de configurações de comando ---
+        // --- ESQUEMA DO BANCO DE DADOS ---
         await db.exec(`
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY NOT NULL,
+                value TEXT
+            );
+
             CREATE TABLE IF NOT EXISTS command_settings (
                 command_string TEXT NOT NULL,
                 ai_model_key TEXT NOT NULL,
@@ -32,59 +37,148 @@ async function connectAndMigrate(app) {
                 is_direct_action INTEGER DEFAULT 0,
                 PRIMARY KEY (command_string, ai_model_key)
             );
-        `);
 
-        // Lógica de migração da tabela antiga 'pinned_commands' para a nova
-        const oldTable = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='pinned_commands'");
-        if (oldTable) {
-            console.log("[Database Migration] Tabela 'pinned_commands' encontrada. Migrando dados para 'command_settings'...");
-            const oldPinned = await db.all("SELECT ai_model_key, command_string FROM pinned_commands");
+            CREATE TABLE IF NOT EXISTS games (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL UNIQUE,
+                platform TEXT CHECK(platform IN ('PC', 'PS5', 'Switch', 'Outro')) NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Na Estante',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS game_tags (
+                game_id INTEGER NOT NULL,
+                tag_id INTEGER NOT NULL,
+                FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+                FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+                PRIMARY KEY (game_id, tag_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS game_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id INTEGER NOT NULL,
+                log_text TEXT NOT NULL,
+                mood_rating INTEGER CHECK(mood_rating >= 1 AND mood_rating <= 5),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS meetings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                full_audio_me BLOB,
+                full_audio_other BLOB
+            );
+
+            CREATE TABLE IF NOT EXISTS transcripts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                meeting_id INTEGER NOT NULL,
+                speaker TEXT NOT NULL,
+                text TEXT NOT NULL,
+                audio_blob BLOB,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (meeting_id) REFERENCES meetings (id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS scribe_analyses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                meeting_id INTEGER NOT NULL,
+                context TEXT NOT NULL,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (meeting_id) REFERENCES meetings (id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender TEXT NOT NULL,
+                content TEXT NOT NULL,
+                is_html INTEGER DEFAULT 0,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS todos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS memory_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_date TEXT NOT NULL UNIQUE,
+                title TEXT,
+                summary TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS memory_turns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                user_prompt TEXT NOT NULL,
+                model_response TEXT NOT NULL,
+                is_pinned INTEGER DEFAULT 0,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES memory_sessions (id) ON DELETE CASCADE
+            );
+
+            -- --- INÍCIO DA CORREÇÃO ---
+            CREATE TABLE IF NOT EXISTS companies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                clockify_workspace_id TEXT,
+                clickup_team_id TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            -- --- FIM DA CORREÇÃO ---
+
+            CREATE TABLE IF NOT EXISTS projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                company_id INTEGER NOT NULL,
+                clockify_project_id TEXT,
+                clockify_custom_field_id TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                clickup_url TEXT UNIQUE,
+                clickup_task_id TEXT,
+                project_id INTEGER,
+                status TEXT DEFAULT 'open',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
+            );
             
-            if (oldPinned.length > 0) {
-                const stmt = await db.prepare("INSERT OR IGNORE INTO command_settings (command_string, ai_model_key, is_quick_action, is_direct_action) VALUES (?, ?, ?, ?)");
-                for (const pin of oldPinned) {
-                    // Migra o comando como um atalho, mas não como ação direta (comportamento seguro)
-                    await stmt.run(pin.command_string, pin.ai_model_key, 1, 0);
-                }
-                await stmt.finalize();
-            }
-            await db.exec("DROP TABLE pinned_commands");
-            console.log("[Database Migration] Migração concluída. Tabela 'pinned_commands' removida.");
-        }
-        // --- FIM DA ALTERAÇÃO ---
-
-        await db.exec(`
-            CREATE TABLE IF NOT EXISTS settings ( key TEXT PRIMARY KEY NOT NULL, value TEXT );
-            CREATE TABLE IF NOT EXISTS games ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL UNIQUE, platform TEXT CHECK(platform IN ('PC', 'PS5', 'Switch', 'Outro')) NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP );
-            CREATE TABLE IF NOT EXISTS tags ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE );
-            CREATE TABLE IF NOT EXISTS game_tags ( game_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE, FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE, PRIMARY KEY (game_id, tag_id) );
-            CREATE TABLE IF NOT EXISTS game_logs ( id INTEGER PRIMARY KEY AUTOINCREMENT, game_id INTEGER NOT NULL, log_text TEXT NOT NULL, mood_rating INTEGER CHECK(mood_rating >= 1 AND mood_rating <= 5), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE );
-            CREATE TABLE IF NOT EXISTS notes ( id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP );
-            CREATE TABLE IF NOT EXISTS meetings ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, full_audio_me BLOB, full_audio_other BLOB );
-            CREATE TABLE IF NOT EXISTS transcripts ( id INTEGER PRIMARY KEY AUTOINCREMENT, meeting_id INTEGER NOT NULL, speaker TEXT NOT NULL, text TEXT NOT NULL, audio_blob BLOB, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (meeting_id) REFERENCES meetings (id) ON DELETE CASCADE );
-            CREATE TABLE IF NOT EXISTS scribe_analyses ( id INTEGER PRIMARY KEY AUTOINCREMENT, meeting_id INTEGER NOT NULL, context TEXT NOT NULL, question TEXT NOT NULL, answer TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (meeting_id) REFERENCES meetings (id) ON DELETE CASCADE );
-            CREATE TABLE IF NOT EXISTS chat_history ( id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT NOT NULL, content TEXT NOT NULL, is_html INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP );
-            CREATE TABLE IF NOT EXISTS todos ( id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT NOT NULL, status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP );
-            CREATE TABLE IF NOT EXISTS memory_sessions ( id INTEGER PRIMARY KEY AUTOINCREMENT, session_date TEXT NOT NULL UNIQUE, title TEXT, summary TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP );
-            CREATE TABLE IF NOT EXISTS memory_turns ( id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, user_prompt TEXT NOT NULL, model_response TEXT NOT NULL, is_pinned INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (session_id) REFERENCES memory_sessions (id) ON DELETE CASCADE );
-            CREATE TABLE IF NOT EXISTS companies ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP );
-            CREATE TABLE IF NOT EXISTS projects ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, company_id INTEGER NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE );
-            CREATE TABLE IF NOT EXISTS tasks ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, clickup_url TEXT UNIQUE, project_id INTEGER NOT NULL, status TEXT DEFAULT 'open', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE );
-            CREATE TABLE IF NOT EXISTS work_logs ( id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER NOT NULL, documentation TEXT, hours_worked REAL NOT NULL, log_date DATETIME NOT NULL, is_clickup_synced INTEGER DEFAULT 0, is_clockify_synced INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE );
+            CREATE TABLE IF NOT EXISTS work_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                documentation TEXT,
+                hours_worked REAL NOT NULL,
+                log_date DATETIME NOT NULL,
+                is_clickup_synced INTEGER DEFAULT 0,
+                is_clockify_synced INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+            );
         `);
-        
-        const gamesTableInfo = await db.all("PRAGMA table_info(games)");
-        if (!gamesTableInfo.some(col => col.name === 'status')) {
-            await db.exec("ALTER TABLE games ADD COLUMN status TEXT NOT NULL DEFAULT 'Na Estante'");
-        }
-        
-        const meetingsInfo = await db.all("PRAGMA table_info(meetings)");
-        if (!meetingsInfo.some(col => col.name === 'full_audio_me')) {
-            await db.exec("ALTER TABLE meetings ADD COLUMN full_audio_me BLOB");
-        }
-        if (!meetingsInfo.some(col => col.name === 'full_audio_other')) {
-            await db.exec("ALTER TABLE meetings ADD COLUMN full_audio_other BLOB");
-        }
 
         dbConnection = db;
         return dbConnection;
