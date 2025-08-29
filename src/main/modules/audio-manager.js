@@ -1,45 +1,44 @@
+// /src/main/modules/audio-manager.js (Refatorado para usar PiperManager)
 const { BrowserWindow, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
 const transcriptionEngine = require('./transcription-engine');
 const dbManager = require('./database-manager');
 const windowManager = require('./window-manager');
+const piperManager = require(path.join(__dirname, 'piper-manager.js'));
 
 class AudioManager {
     constructor() {
+        // Propriedades de Transcrição
         this.workerWindow = null;
         this.isRecording = false;
         this.currentMeetingId = null;
         this.aiPostProcessor = null;
         this.useAIPostProcessing = false;
+
+        // Propriedades de TTS
+        this.isSpeaking = false;
+        this.isTtsEnabled = false;
     }
 
     initialize(app) {
-        // --- LOG DE DEBUG ADICIONADO AQUI ---
-        // Este é o canal que a versão com MediaRecorder envia a cada 5 segundos
+        // --- Handlers de Transcrição (sem alteração) ---
         ipcMain.handle('audio-data-float32', async (event, { speaker, buffer }) => {
             const meetingId = this.currentMeetingId;
             if (!meetingId) return false;
 
-            // O 'buffer' aqui é o ArrayBuffer de um Float32Array. Precisamos reconstruí-lo.
             const audioData = new Float32Array(buffer);
-            
             const rawText = await transcriptionEngine.transcribe(audioData);
         
-
             if (rawText && rawText.trim().length > 0) {
                 let finalText = rawText;
-                
                 if (this.useAIPostProcessing && this.aiPostProcessor) {
                     finalText = await this.aiPostProcessor(rawText);
                 }
-                
                 await dbManager.scribe.addTranscript(meetingId, speaker, finalText, null);
-
                 const liveScribeWindow = windowManager.getLiveScribeWindow();
                 if (liveScribeWindow && !liveScribeWindow.isDestroyed()) {
                     liveScribeWindow.webContents.send('scribe:live-update', { speaker, text: finalText });
                 }
-            } else {
             }
             return true;
         });
@@ -61,29 +60,33 @@ class AudioManager {
             }
             this.workerWindow = null;
             this.currentMeetingId = null;
-            
             const liveScribeWindow = windowManager.getLiveScribeWindow();
             if (liveScribeWindow && !liveScribeWindow.isDestroyed()) {
                 liveScribeWindow.close();
             }
         });
+
+        // --- Handlers de TTS ---
+        ipcMain.on('tts:set-enabled', (event, { isEnabled }) => {
+            this.setTtsEnabled(isEnabled);
+        });
+
+        ipcMain.on('tts:playback-finished', () => {
+            this.isSpeaking = false;
+            const mainWindow = windowManager.getMainWindow();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('tts:speaking-state-changed', { isSpeaking: false });
+            }
+        });
     }
 
-    setAIPostProcessor(processorFunction) {
-        this.aiPostProcessor = processorFunction;
-    }
-
-    toggleAIPostProcessing(isEnabled) {
-        this.useAIPostProcessing = isEnabled;
-    }
-
+    // --- Métodos de Transcrição (sem alteração) ---
+    setAIPostProcessor(processorFunction) { this.aiPostProcessor = processorFunction; }
+    toggleAIPostProcessing(isEnabled) { this.useAIPostProcessing = isEnabled; }
     async start() {
         if (this.isRecording) return;
         
-        // A inicialização agora acontece no transcription-engine quando ele é 'requerido'
-        // e verificamos o 'ready' status.
         await transcriptionEngine.initialize();
-        
         if (!transcriptionEngine.ready) {
             console.error('[AudioManager] Não foi possível iniciar a gravação, motor de transcrição falhou.');
             return;
@@ -119,6 +122,48 @@ class AudioManager {
             this.workerWindow.webContents.send('stop-capture');
         }
         this.isRecording = false;
+    }
+
+    // --- MÉTODOS DE TTS USANDO O PIPER MANAGER ---
+
+    async speak(text) {
+        if (!this.isTtsEnabled || !text) {
+            return;
+        }
+        
+        // Interrompe qualquer áudio anterior antes de gerar um novo.
+        this.stopSpeaking();
+        
+        // Delega a geração do áudio para o PiperManager
+        const audioBuffer = await piperManager.generateAudio(text);
+
+        if (audioBuffer) {
+            const mainWindow = windowManager.getMainWindow();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                // Envia o buffer de áudio para a UI tocar
+                mainWindow.webContents.send('tts:play-audio', audioBuffer);
+                
+                // Atualiza o estado e notifica a UI para a animação
+                this.isSpeaking = true;
+                mainWindow.webContents.send('tts:speaking-state-changed', { isSpeaking: true });
+            }
+        } else {
+            console.error('[AudioManager] Não foi possível gerar o áudio via PiperManager.');
+        }
+    }
+
+    stopSpeaking() {
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('tts:cancel');
+        }
+    }
+
+    setTtsEnabled(isEnabled) {
+        this.isTtsEnabled = isEnabled;
+        if (!isEnabled) {
+            this.stopSpeaking();
+        }
     }
 }
 

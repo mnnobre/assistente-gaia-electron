@@ -81,6 +81,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   await ui.updateAiStatus();
   await renderQuickActions();
 
+  // --- INÍCIO DA NOVA SEÇÃO ---
+  // Inicializa o sistema de Text-to-Speech (Voz)
+  ui.setupTts();
+  // --- FIM DA NOVA SEÇÃO ---
+
   setupEventListeners();
 
   // --- INÍCIO DA ALTERAÇÃO ---

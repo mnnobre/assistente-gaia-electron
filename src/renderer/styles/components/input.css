@@ -236,3 +236,21 @@
 #input-container.command-mode-active #message-input {
     padding-top: 18px;
 }
+
+/* --- INÍCIO DOS ESTILOS DE TTS --- */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 132, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 132, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 132, 255, 0);
+  }
+}
+
+.action-button.speaking {
+  border-radius: 50%; /* Faz o brilho ficar redondo */
+  animation: pulse 2s infinite;
+}

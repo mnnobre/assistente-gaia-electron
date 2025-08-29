@@ -1,4 +1,4 @@
-// /src/preload/preload.js (Com removeList)
+// /src/preload/preload.js (Com canais TTS adicionados)
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
@@ -59,9 +59,7 @@ contextBridge.exposeInMainWorld('api', {
     todo: {
         getLists: () => ipcRenderer.invoke('todo:getLists'),
         createList: (name) => ipcRenderer.invoke('todo:createList', name),
-        // --- INÍCIO DA ALTERAÇÃO ---
         removeList: (listId) => ipcRenderer.invoke('todo:removeList', listId),
-        // --- FIM DA ALTERAÇÃO ---
         getTasksForList: (listId) => ipcRenderer.invoke('todo:getTasksForList', listId),
         addTask: (listId, task) => ipcRenderer.invoke('todo:addTask', { listId, task }),
         updateTaskStatus: (taskId, isDone) => ipcRenderer.invoke('todo:updateTaskStatus', { taskId, isDone }),
@@ -88,11 +86,13 @@ contextBridge.exposeInMainWorld('api', {
     
     // --- Função genérica para ENVIAR mensagens One-Way ---
     send: (channel, data) => {
+        // ADICIONADOS os canais de TTS
         const validChannels = [
             'pomodoro-control', 'control-player-action', 'player:minimize',
             'player:close', 'player:show', 'modal:open', 'modal:close',
             'memory:selection-changed', 'context:delete-attachment',
-            'context:recapture', 'scribe:resize', 'commands:settings-changed'
+            'context:recapture', 'scribe:resize', 'commands:settings-changed',
+            'tts:set-enabled', 'tts:playback-finished' // <-- Canais de envio de TTS
         ];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
@@ -101,6 +101,7 @@ contextBridge.exposeInMainWorld('api', {
 
     // --- Função genérica para OUVIR canais ---
     on: (channel, callback) => {
+        // ADICIONADOS os canais de TTS
         const validChannels = [
             'playback-state-updated', 'meal-reminder', 'window-focus-changed', 
             'list-response', 'pomodoro-tick', 'pomodoro-state-changed',
@@ -108,9 +109,11 @@ contextBridge.exposeInMainWorld('api', {
             'ai-stream-end', 'memory:update-in-main-window', 'context:attachment-deleted',
             'context:do-recapture', 'scribe:live-update', 'scribe:analysis-result',
             'proactive-memory', 'commands:refresh-quick-actions',
-            'settings:models-reinitialized'
+            'settings:models-reinitialized',
+            'tts:play-audio', 'tts:cancel', 'tts:speaking-state-changed' // <-- Canais de recebimento de TTS
         ];
         if (validChannels.includes(channel)) {
+            // A lógica de callback aqui está correta, não precisa mudar.
             ipcRenderer.on(channel, (event, ...args) => callback(...args));
         }
     },

@@ -10,14 +10,12 @@ const aiModels = {};
 let activeModelKey = null;
 let embeddingModel;
 let vectorDBManager;
+let audioManager = null;
 let chatContext = [];
 let mainSystemInstruction = "Você é um assistente pessoal prestativo e amigável. Responda de forma concisa e útil.";
 
-// --- INÍCIO DA ALTERAÇÃO ---
 
-// Esta função agora contém a lógica para carregar os modelos e pode ser chamada a qualquer momento.
 async function initializeModels({ geminiApiKey, openaiApiKey }) {
-    // Limpa modelos antigos, exceto o local, para evitar duplicatas
     for (const key in aiModels) {
         if (aiModels[key].provider !== 'local') {
             delete aiModels[key];
@@ -62,19 +60,17 @@ async function initializeModels({ geminiApiKey, openaiApiKey }) {
     }
 }
 
-// A inicialização principal agora apenas prepara o terreno.
-async function initializeAI(vectorDBInstance) {
+async function initializeAI(vectorDBInstance, dependencies = {}) {
     vectorDBManager = vectorDBInstance;
+    audioManager = dependencies.audioManager;
     registerModel('gaia', 'G.A.I.A. (Local)', 'local', null);
 }
 
-// Nova função para ser chamada pelo main.js após salvar as chaves.
 async function reinitializeModels() {
     const geminiApiKey = await dbManager.settings.get('api_key_gemini');
     const openaiApiKey = await dbManager.settings.get('api_key_openai');
     await initializeModels({ geminiApiKey, openaiApiKey });
 }
-// --- FIM DA ALTERAÇÃO ---
 
 
 function registerModel(key, displayName, provider, clientInstance) {
@@ -162,6 +158,18 @@ async function generateResponse(
     
     mainWindow.webContents.send("ai-stream-end");
 
+    if (audioManager && fullResponseText) {
+        if (!fullResponseText.includes('```')) {
+            // --- INÍCIO DA ALTERAÇÃO ---
+            // Remove a formatação Markdown antes de enviar para a fala.
+            const textToSpeak = fullResponseText
+                .replace(/(\*\*|__|### |## |# |\*|_)/g, '')
+                .replace(/\n+/g, ' ');
+            audioManager.speak(textToSpeak);
+            // --- FIM DA ALTERAÇÃO ---
+        }
+    }
+
     chatContext.push({ role: 'user', parts: [{ text: finalPrompt }] }, { role: 'model', parts: [{ text: fullResponseText }] });
     await saveConversationTurn(userInput, fullResponseText);
 
@@ -187,7 +195,7 @@ async function getCompleteResponse(prompt) {
         } else if (activeModel.provider === 'openai') {
             const messages = [ { role: 'system', content: "Você é um assistente prestativo." }, { role: 'user', content: prompt } ];
             const completion = await activeModel.client.chat.completions.create({ model: activeModelKey, messages: messages, });
-            return completion.choices[0].message.content;
+            return completion.choices.message.content;
         }
     } catch (error) {
         console.error("[AI Manager] Erro ao gerar resposta completa:", error);
@@ -291,8 +299,8 @@ async function formatToHtml(markdownText) {
 }
 module.exports = {
   initializeAI,
-  initializeModels, // Adicionada para uso no main.js
-  reinitializeModels, // Adicionada para ser chamada após salvar
+  initializeModels,
+  reinitializeModels,
   generateResponse,
   getCompleteResponse,
   clearChatContext,

@@ -46,12 +46,8 @@ class PluginManager {
         }
     }
 
-    async handleCommand(userInput, app, mainProcessContext = {}) {
-        // --- INÍCIO DA DEPURAÇÃO ---
-        console.log(`\n--- [DEBUG] Iniciando handleCommand ---`);
-        console.log(`[DEBUG] Input do usuário recebido: "${userInput}"`);
-        // --- FIM DA DEPURAÇÃO ---
-
+    // ALTERADO: A função agora aceita um terceiro parâmetro 'dependencies'
+    async handleCommand(userInput, app, dependencies = {}) {
         const args = userInput.trim().split(/\s+/);
         const commandNameWithSlash = args.shift().toLowerCase();
         
@@ -68,20 +64,11 @@ class PluginManager {
         const commandName = commandNameWithSlash.substring(1);
         const plugin = this.plugins.get(commandName);
         
-        // --- INÍCIO DA DEPURAÇÃO ---
-        console.log(`[DEBUG] Comando extraído: "${commandName}"`);
-        console.log(`[DEBUG] Plugin encontrado: ${plugin ? 'Sim (' + plugin.command + ')' : 'Não'}`);
-        // --- FIM DA DEPURAÇÃO ---
-        
         if (plugin) {
             try {
-                // --- INÍCIO DA DEPURAÇÃO ---
-                console.log(`[DEBUG] Executando plugin "${commandName}" com args:`, args);
-                const pluginResponse = await plugin.execute(args, app, mainProcessContext);
-                console.log(`[DEBUG] Resposta recebida do plugin "${commandName}":`, pluginResponse);
-                console.log(`--- [DEBUG] Finalizando handleCommand ---\n`);
+                // ALTERADO: Passa o objeto 'dependencies' para a função execute do plugin
+                const pluginResponse = await plugin.execute(args, app, dependencies);
                 return pluginResponse;
-                // --- FIM DA DEPURAÇÃO ---
             } catch (error) {
                 console.error(`[PluginManager] Erro ao executar o comando "${commandNameWithSlash}":`, error);
                 return { type: 'direct_response', content: `Ocorreu um erro inesperado ao executar o comando.` };

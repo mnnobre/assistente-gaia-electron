@@ -1,4 +1,4 @@
-// /src/renderer/js/modules/ui.js (Pronto para Bindings)
+// /src/renderer/js/modules/ui.js (Refatorado para Piper TTS)
 // =================================================================================
 // MODULE: UI MANAGEMENT
 // =================================================================================
@@ -10,12 +10,149 @@ import { selectIsMiniPlayerVisible } from './storeSlices/playerSlice.js';
 import VisibilityManager from './VisibilityManager.js';
 import { checkVisibility } from './visibilityRules.js';
 
+// =================================================================================
+// NEW: MÓDULO DE TEXT-TO-SPEECH (TTS) COM PIPER
+// =================================================================================
+
+let ttsButton = null;
+let isTtsEnabled = true;
+let isActuallySpeaking = false;
+// --- INÍCIO DA ALTERAÇÃO ---
+let audioContext = null; // Contexto de áudio global
+let currentAudioSource = null; // Referência à fonte de áudio atual para podermos pará-la
+// --- FIM DA ALTERAÇÃO ---
+const ttsIcon = '🔊';
 
 /**
- * Adiciona uma mensagem ao chat usando a estrutura de componentes do DaisyUI.
+ * Toca um buffer de áudio recebido do processo principal usando a Web Audio API.
+ * @param {Buffer} audioBuffer - O buffer de áudio em formato .wav.
  */
+async function playAudio(audioBuffer) {
+    if (!audioBuffer) return;
+    
+    cancelSpeech();
+
+    // Inicializa o AudioContext no primeiro uso (requer interação do usuário)
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    try {
+        // O IPC do Electron pode serializar o Buffer. Precisamos garantir que seja um ArrayBuffer.
+        const arrayBuffer = audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength);
+
+        // Decodifica os dados de áudio brutos para um formato que a placa de som entende.
+        const decodedAudio = await audioContext.decodeAudioData(arrayBuffer);
+
+        currentAudioSource = audioContext.createBufferSource();
+        currentAudioSource.buffer = decodedAudio;
+        currentAudioSource.connect(audioContext.destination);
+        
+        isActuallySpeaking = true;
+        updateTtsButtonUI();
+        
+        currentAudioSource.onended = () => {
+            isActuallySpeaking = false;
+            window.api.send('tts:playback-finished');
+            updateTtsButtonUI();
+            currentAudioSource = null;
+        };
+
+        currentAudioSource.start(0);
+
+    } catch (e) {
+        console.error("Erro ao decodificar ou tocar áudio com AudioContext:", e);
+        // Garante que o estado seja resetado em caso de erro.
+        isActuallySpeaking = false;
+        window.api.send('tts:playback-finished');
+        updateTtsButtonUI();
+    }
+}
+
+/**
+ * Para a reprodução de áudio atual.
+ */
+export function cancelSpeech() {
+    if (currentAudioSource) {
+        currentAudioSource.stop(); // .stop() é o método para interromper a fonte no AudioContext
+        // O evento 'onended' será disparado automaticamente, limpando o estado.
+    }
+}
+// --- FIM DA SEÇÃO ALTERADA ---
+
+/**
+ * Atualiza o estado visual do botão TTS (cor, animação).
+ */
+function updateTtsButtonUI() {
+    if (!ttsButton) return;
+    ttsButton.classList.toggle('active', isTtsEnabled);
+    ttsButton.classList.toggle('speaking', isActuallySpeaking);
+    ttsButton.title = `Síntese de Voz (${isTtsEnabled ? 'Ativada' : 'Desativada'})`;
+}
+
+/**
+ * Lida com o clique no botão TTS, implementando a lógica de interrupção/toggle.
+ */
+function handleTtsButtonClick() {
+    if (isActuallySpeaking) {
+        cancelSpeech();
+    } else {
+        isTtsEnabled = !isTtsEnabled;
+        window.api.send('tts:set-enabled', { isEnabled: isTtsEnabled });
+        updateTtsButtonUI();
+    }
+}
+
+/**
+ * Cria o botão TTS, o insere no DOM e configura os listeners da API.
+ */
+export function setupTts() {
+    if (document.getElementById('tts-toggle-button')) return;
+
+    ttsButton = document.createElement('button');
+    ttsButton.id = 'tts-toggle-button';
+    ttsButton.className = 'action-button tts-pulse';
+    ttsButton.innerHTML = ttsIcon;
+
+    const memoryButton = elements.memoryWindowButton;
+    if (memoryButton) {
+        memoryButton.parentElement.insertBefore(ttsButton, memoryButton);
+    }
+
+    ttsButton.addEventListener('click', handleTtsButtonClick);
+
+    window.api.on('tts:play-audio', (audioBuffer) => {
+        if (isTtsEnabled) {
+            playAudio(audioBuffer);
+        }
+    });
+    window.api.on('tts:cancel', () => cancelSpeech());
+
+    window.api.on('tts:speaking-state-changed', ({ isSpeaking }) => {
+        isActuallySpeaking = isSpeaking;
+        updateTtsButtonUI();
+    });
+
+    elements.messageInput.addEventListener('input', () => {
+        if (isActuallySpeaking) {
+            cancelSpeech();
+        }
+    });
+    
+    window.api.send('tts:set-enabled', { isEnabled: isTtsEnabled });
+    updateTtsButtonUI();
+}
+
+// =================================================================================
+// SEÇÃO DE UI EXISTENTE (SEM ALTERAÇÕES)
+// =================================================================================
+
 export function addMessageToChat(text, sender, { imageData = null, isHtml = false } = {}) {
     if (!elements.chatContainer) return null;
+
+    if (sender === 'assistant') {
+        cancelSpeech();
+    }
 
     const activeModel = store.getState().ai.activeModel;
     const now = new Date();
@@ -138,6 +275,7 @@ export function finalizeStreamedMessage(messageWrapper) {
         preBlock.replaceWith(mockupDiv);
     });
     const fullText = bubble.dataset.fullText || "";
+    
     updateSpeechBubble(fullText.substring(0, 120) + (fullText.length > 120 ? "..." : ""), false);
     bubble.dataset.finalized = "true";
 }
@@ -163,8 +301,6 @@ export function removeThumbnail() { store.getState().detachImage(); if (!element
 export function showThumbnail(imageData) { if (!imageData) { removeThumbnail(); return; } if (!elements.thumbnailContainer || !elements.contextMenuButton) return; store.getState().attachImage(imageData); elements.thumbnailContainer.innerHTML = ''; const img = document.createElement('img'); img.src = imageData; const removeBtn = document.createElement('div'); removeBtn.className = 'remove-thumbnail-btn'; removeBtn.innerHTML = '&times;'; removeBtn.addEventListener('click', (e) => { e.stopPropagation(); removeThumbnail(); }); elements.thumbnailContainer.appendChild(img); elements.thumbnailContainer.appendChild(removeBtn); elements.thumbnailContainer.classList.remove('hidden'); elements.contextMenuButton.classList.add('active'); }
 export function renderSuggestions(onSelect) { if (!elements.autocompleteContainer) return; const getState = store.getState; elements.autocompleteContainer.innerHTML = ""; if (getState().currentSuggestions.length === 0) { elements.autocompleteContainer.classList.add("hidden"); return; } getState().currentSuggestions.forEach((suggestion, index) => { const el = document.createElement("div"); el.classList.add("autocomplete-suggestion"); el.innerHTML = `<span class="command">${suggestion.name}</span><span class="description">${suggestion.description}</span>`; el.addEventListener("click", () => onSelect(index)); elements.autocompleteContainer.appendChild(el); }); elements.autocompleteContainer.classList.remove("hidden"); getState().setSelectedSuggestionIndex(-1); }
 
-// --- INÍCIO DA ALTERAÇÃO ---
-// A função agora é controlada pelo `subscribe` e apenas reflete o estado.
 export function updateSuggestionSelection() { 
     if (!elements.autocompleteContainer) return;
     const { selectedSuggestionIndex } = store.getState();
@@ -177,7 +313,6 @@ export function updateSuggestionSelection() {
         } 
     }); 
 }
-// --- FIM DA ALTERAÇÃO ---
 
 export function updateMiniPlayerUI() { 
     if (!elements.miniPlayer) return; 
@@ -245,9 +380,6 @@ export function openContextModal() { const imageData = store.getState().attached
 export async function updateAiStatus() { const activeModel = await window.api.ai.getActiveModel(); if(activeModel) { store.getState().setActiveModel(activeModel); } if (activeModel && elements.aiStatusText) { elements.aiStatusText.textContent = `IA Ativa: ${activeModel.name}`; } else if (elements.aiStatusText) { elements.aiStatusText.textContent = `IA Inativa`; } }
 export function hideAutocomplete() { if (!elements.autocompleteContainer) return; store.getState().clearSuggestions(); elements.autocompleteContainer.classList.add("hidden"); }
 
-// --- INÍCIO DA ALTERAÇÃO ---
-// Nova função para ser usada no uiBindings.
-// Ela recebe o estado como argumento, em vez de lê-lo globalmente.
 export function updateCommandModeUI(activeCommandMode) {
     if (!elements.inputContainer || !elements.messageInput) return;
 
@@ -272,4 +404,3 @@ export function updateCommandModeUI(activeCommandMode) {
         elements.messageInput.placeholder = 'Digite sua mensagem...';
     }
 }
-// --- FIM DA ALTERAÇÃO ---

@@ -1,6 +1,7 @@
-// /plugins/scribe/index.js
+// /plugins/scribe/index.js (Desacoplado do audioManager)
 
-const audioManager = require("../../src/main/modules/audio-manager.js");
+// REMOVIDO: A importação direta do audioManager foi removida.
+// const audioManager = require("../../src/main/modules/audio-manager.js"); 
 const dbManager = require("../../src/main/modules/database-manager.js");
 
 module.exports = {
@@ -35,10 +36,8 @@ module.exports = {
 
   initialize: async (app, dependencies) => {},
 
-  // --- INÍCIO DA MODIFICAÇÃO ---
-  // A função execute agora recebe ambas as funções de criação de janela
-  execute: async (args, app, { createScribeWindow, createLiveScribeWindow } = {}) => {
-  // --- FIM DA MODIFICAÇÃO ---
+  // ALTERADO: A função agora desestrutura o audioManager das dependências
+  execute: async (args, app, { createScribeWindow, createLiveScribeWindow, audioManager } = {}) => {
     let subcommand, id;
 
     if (Array.isArray(args)) {
@@ -59,17 +58,18 @@ module.exports = {
     }
 
     try {
+      // Garante que o audioManager foi injetado antes de usá-lo
+      if (!audioManager && (subcommand === 'iniciar' || subcommand === 'parar')) {
+        throw new Error("AudioManager não foi injetado no plugin Scribe.");
+      }
+
       switch (subcommand) {
         case "iniciar":
-          // --- INÍCIO DA MODIFICAÇÃO ---
-          // Agora também chamamos a função para criar a janela ao vivo
           if (createLiveScribeWindow) {
             createLiveScribeWindow();
           }
           audioManager.start();
-          // Retornamos uma ação para suprimir a mensagem "Ok, gravação iniciada" do chat
           return { type: 'action', action: 'suppress_chat_response' };
-          // --- FIM DA MODIFICAÇÃO ---
 
         case "parar":
           audioManager.stop();
@@ -107,6 +107,7 @@ module.exports = {
           return { success: false, message: `Comando para /reuniao inválido. Use: iniciar, parar, listar, mostrar, deletar ou limpar.` };
       }
     } catch (error) {
+      console.error("[Scribe Plugin] Erro ao executar comando:", error);
       return { success: false, message: "Ocorreu um erro interno no plugin de reuniões." };
     }
   },
