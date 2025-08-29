@@ -6,7 +6,6 @@ services:
   chroma:
     image: chromadb/chroma:latest
     # --- ADICIONE ESTA LINHA ---
-    restart: always
     # --------------------------
     ports:
       - "8000:8000"

@@ -1,124 +1,149 @@
-const { ChromaClient } = require("chromadb");
-const aiManager = require("./ai-manager.js");
+// src/main/modules/vector-db-manager.js
 
-class GeminiEmbeddingFunction {
-    async generate(texts) {
-        const embeddings = [];
-        for (const text of texts) {
-            const embedding = await aiManager.generateEmbedding(text);
-            if (embedding) {
-                embeddings.push(embedding);
-            } else {
-                embeddings.push(new Array(768).fill(0)); 
-            }
-        }
-        return embeddings;
-    }
-}
+/**
+ * VectorDBManager
+ * 
+ * Gerencia o banco de dados vetorial local usando LanceDB.
+ * 
+ * ⚠️ No Node.js não existe register_embedding_function.
+ * O embedding deve ser gerado manualmente antes de salvar no banco.
+ */
+
+const { connect } = require("vectordb");
+const aiManager = require("./ai-manager.js");
+const path = require("path");
+const fs = require('fs').promises;
 
 class VectorDBManager {
     constructor() {
-        const chromaUrl = "http://localhost:8000";
-        this.client = new ChromaClient({ path: chromaUrl });
-        this.embeddingFunction = new GeminiEmbeddingFunction();
-        this.mainAssistantCollection = null;
-        this.gaiaCollection = null;
-        this.mainAssistantCollectionName = "chat_memories_main";
-        this.gaiaCollectionName = "gaia_memories";
+        this.db = null;
+        this.mainAssistantTable = null;
+        this.gaiaTable = null;
+        this.mainAssistantTableName = "chat_memories_main";
+        this.gaiaTableName = "gaia_memories";
     }
 
-    async initialize() {
-        try {
-            this.mainAssistantCollection = await this.client.getOrCreateCollection({
-                name: this.mainAssistantCollectionName,
-                embeddingFunction: this.embeddingFunction,
-                metadata: { "description": "Memórias de longo prazo para o assistente de produtividade" }
-            });
-            console.log(`[VectorDB] Coleção de Produtividade "${this.mainAssistantCollectionName}" carregada.`);
+    /**
+     * Inicializa o LanceDB com persistência local.
+     */
+    async initialize(userDataPath) {
+        if (!userDataPath) {
+            throw new Error("[VectorDB] userDataPath não fornecido.");
+        }
 
-            this.gaiaCollection = await this.client.getOrCreateCollection({
-                name: this.gaiaCollectionName,
-                embeddingFunction: this.embeddingFunction,
-                metadata: { "description": "Memórias pessoais de jogo para a G.A.I.A." }
-            });
-            console.log(`[VectorDB] Coleção da G.A.I.A. "${this.gaiaCollectionName}" carregada.`);
-            
+        const dbPath = path.join(userDataPath, 'lancedb_data');
+
+        try {
+            await fs.mkdir(dbPath, { recursive: true });
+
+            this.db = await connect(dbPath);
+            console.log(`[VectorDB] Conexão com LanceDB estabelecida em: ${dbPath}`);
+
+            const tableNames = await this.db.tableNames();
+
+            // --- INÍCIO DA ALTERAÇÃO ---
+            // Define o schema completo para os dados iniciais
+            const initialMainData = [{
+                id: 'init_id_main',
+                text: "initial text",
+                vector: new Array(768).fill(0),
+                source: 'main',
+                created_at: 0
+            }];
+
+            const initialGaiaData = [{
+                id: 'init_id_gaia',
+                text: "initial game log",
+                vector: new Array(768).fill(0),
+                source: 'gaia',
+                created_at: 0
+            }];
+            // --- FIM DA ALTERAÇÃO ---
+
+            // Criar/abrir tabela principal
+            if (tableNames.includes(this.mainAssistantTableName)) {
+                this.mainAssistantTable = await this.db.openTable(this.mainAssistantTableName);
+            } else {
+                console.log(`[VectorDB] Criando tabela "${this.mainAssistantTableName}" com schema completo.`);
+                this.mainAssistantTable = await this.db.createTable(
+                    this.mainAssistantTableName,
+                    initialMainData // <-- Usa os dados iniciais com o schema completo
+                );
+            }
+
+            // Criar/abrir tabela da GAIA
+            if (tableNames.includes(this.gaiaTableName)) {
+                this.gaiaTable = await this.db.openTable(this.gaiaTableName);
+            } else {
+                console.log(`[VectorDB] Criando tabela "${this.gaiaTableName}" com schema completo.`);
+                this.gaiaTable = await this.db.createTable(
+                    this.gaiaTableName,
+                    initialGaiaData // <-- Usa os dados iniciais com o schema completo
+                );
+            }
+
+            console.log(`[VectorDB] Tabelas inicializadas com sucesso.`);
             return true;
         } catch (error) {
-            console.error("[VectorDB] Falha CRÍTICA ao inicializar coleções. O container Docker do ChromaDB está rodando? Use 'docker-compose up -d'.", error);
+            console.error("[VectorDB] Falha CRÍTICA ao inicializar o LanceDB.", error);
             return false;
         }
     }
 
-    // --- NOVA FUNÇÃO DE LIMPEZA ---
     /**
-     * Deleta e recria uma coleção para limpar todos os seus dados.
-     * @param {'main' | 'gaia'} target - A coleção a ser limpa.
+     * Adiciona memória (gera embedding manualmente e salva no banco)
      */
-    async clearCollection(target) {
-        try {
-            if (target === 'gaia') {
-                console.log(`[VectorDB] Limpando a coleção da G.A.I.A.: "${this.gaiaCollectionName}"...`);
-                await this.client.deleteCollection({ name: this.gaiaCollectionName });
-                this.gaiaCollection = await this.client.getOrCreateCollection({
-                    name: this.gaiaCollectionName,
-                    embeddingFunction: this.embeddingFunction,
-                    metadata: { "description": "Memórias pessoais de jogo para a G.A.I.A." }
-                });
-                console.log(`[VectorDB] Coleção da G.A.I.A. recriada com sucesso.`);
-                return true;
-            } else if (target === 'main') {
-                // Adicionamos a lógica para a coleção principal por segurança, caso precise no futuro.
-                console.log(`[VectorDB] Limpando a coleção Principal: "${this.mainAssistantCollectionName}"...`);
-                await this.client.deleteCollection({ name: this.mainAssistantCollectionName });
-                this.mainAssistantCollection = await this.client.getOrCreateCollection({
-                    name: this.mainAssistantCollectionName,
-                    embeddingFunction: this.embeddingFunction,
-                    metadata: { "description": "Memórias de longo prazo para o assistente de produtividade" }
-                });
-                console.log(`[VectorDB] Coleção Principal recriada com sucesso.`);
-                return true;
-            }
-            console.warn(`[VectorDB] Tentativa de limpar coleção desconhecida: ${target}`);
-            return false;
-        } catch (error) {
-            console.error(`[VectorDB] Erro ao limpar a coleção '${target}':`, error);
-            return false;
-        }
-    }
-    // --- FIM DA NOVA FUNÇÃO ---
-
     async addMemory(target, id, content) {
-        const collection = target === 'gaia' ? this.gaiaCollection : this.mainAssistantCollection;
-        if (!collection) {
-            console.error(`[VectorDB] A coleção '${target}' não foi inicializada. Não é possível adicionar memória.`);
+        const table = target === 'gaia' ? this.gaiaTable : this.mainAssistantTable;
+        if (!table) {
+            console.error(`[VectorDB] Tabela '${target}' não inicializada.`);
             return;
         }
+
         try {
-            await collection.add({
-                ids: [id],
-                metadatas: [{ "source": target, "created_at": Date.now() }],
-                documents: [content]
-            });
+            const embedding = await aiManager.generateEmbedding(content);
+            
+            // Garante que o embedding seja um array válido
+            if (!embedding || embedding.length !== 768) {
+                console.error(`[VectorDB] Falha ao gerar embedding para o conteúdo. Usando fallback.`);
+                embedding = new Array(768).fill(0);
+            }
+
+            await table.add([{
+                id,
+                text: content,
+                vector: embedding,
+                source: target,
+                created_at: Date.now()
+            }]);
         } catch (error) {
-            console.error(`[VectorDB] Erro ao adicionar memória com ID ${id} à coleção '${target}':`, error);
+            console.error(`[VectorDB] Erro ao adicionar memória à tabela '${target}':`, error);
         }
     }
 
+    /**
+     * Busca memórias relevantes
+     */
     async searchRelevantMemories(target, queryText, numResults = 3) {
-        const collection = target === 'gaia' ? this.gaiaCollection : this.mainAssistantCollection;
-        if (!collection) {
-            console.error(`[VectorDB] A coleção '${target}' não foi inicializada. Não é possível buscar memórias.`);
+        const table = target === 'gaia' ? this.gaiaTable : this.mainAssistantTable;
+        if (!table) {
+            console.error(`[VectorDB] Tabela '${target}' não inicializada.`);
             return [];
         }
+
         try {
-            const results = await collection.query({
-                queryTexts: [queryText],
-                nResults: numResults
-            });
-            return results.documents[0] || [];
+            const queryEmbedding = await aiManager.generateEmbedding(queryText);
+            
+            // Garante que a busca não falhe se o embedding da query falhar
+            if (!queryEmbedding || queryEmbedding.length !== 768) {
+                console.error(`[VectorDB] Falha ao gerar embedding para a query de busca.`);
+                return [];
+            }
+
+            const results = await table.search(queryEmbedding).limit(numResults).execute();
+            return results.map(r => r.text);
         } catch (error) {
-            console.error(`[VectorDB] Erro ao buscar memórias na coleção '${target}':`, error);
+            console.error(`[VectorDB] Erro ao buscar memórias na tabela '${target}':`, error);
             return [];
         }
     }

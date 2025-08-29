@@ -1,6 +1,7 @@
-// /src/main/main.js (Refatorado com Piper Manager)
+// /src/main/main.js (Refatorado para LanceDB)
 const { app, ipcMain, BrowserWindow } = require("electron");
 const path = require("path");
+// REMOVIDO: const { spawn } = require("child_process");
 
 const express = require('express');
 const http = require('http');
@@ -34,6 +35,9 @@ app.commandLine.appendSwitch("disable-software-rasterizer");
 let pomodoroManager;
 let modalWindow = null;
 let io;
+// REMOVIDO: let chromaServerProcess = null;
+
+// REMOVIDA: A função startChromaServer foi completamente removida.
 
 const actionHandlers = {
     pomodoro_show: () => {
@@ -83,8 +87,13 @@ app.whenReady().then(async () => {
   try {
     piperManager.start();
 
+    // --- FLUXO DE INICIALIZAÇÃO SIMPLIFICADO ---
     await dbManager.initializeDatabase(app);
-    await vectorDBManager.initialize();
+
+    const userDataPath = app.getPath("userData");
+    // O VectorDBManager (LanceDB) agora só precisa do caminho para salvar seus arquivos.
+    await vectorDBManager.initialize(userDataPath);
+    // --- FIM DA ALTERAÇÃO ---
     
     audioManager.initialize(app, { piperManager });
     
@@ -114,6 +123,7 @@ app.whenReady().then(async () => {
 
 app.on('quit', () => {
   piperManager.stop();
+  // REMOVIDO: O encerramento do processo do ChromaDB não é mais necessário.
 });
 
 async function handleCommandProcessing(payload, source = 'desktop') {
@@ -425,12 +435,9 @@ async function processPluginResponse(response) {
     const finalHtml = await aiManager.formatToHtml(messageContent);
     
     if (messageContent) {
-        // --- INÍCIO DA ALTERAÇÃO ---
-        // Remove **, *, ### etc. mas mantém o conteúdo. Também remove quebras de linha excessivas.
         const textToSpeak = messageContent
             .replace(/(\*\*|__|### |## |# |\*|_)/g, '')
             .replace(/\n+/g, ' ');
-        // --- FIM DA ALTERAÇÃO ---
         audioManager.speak(textToSpeak);
     }
 
